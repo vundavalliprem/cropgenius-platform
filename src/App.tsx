@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import SmartFertilization from "./pages/SmartFertilization";
 import FinancialPlanning from "./pages/FinancialPlanning";
+import SupplyChain from "./pages/SupplyChain";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/fertilization" element={<SmartFertilization />} />
           <Route path="/finance" element={<FinancialPlanning />} />
+          <Route path="/supply-chain" element={<SupplyChain />} />
         </Routes>
         <Toaster />
         <Sonner />
