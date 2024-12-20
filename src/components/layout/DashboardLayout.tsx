@@ -1,6 +1,6 @@
 import React from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, Leaf, DollarSign, Truck } from "lucide-react";
+import { Home, Leaf, DollarSign, Truck, Cloud, Square } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -11,6 +11,8 @@ const navigation = [
   { name: "Smart Fertilization", href: "/fertilization", icon: Leaf },
   { name: "Financial Planning", href: "/finance", icon: DollarSign },
   { name: "Supply Chain", href: "/supply-chain", icon: Truck },
+  { name: "Weather", href: "/weather", icon: Cloud },
+  { name: "Area Calculator", href: "/area-calculator", icon: Square },
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {

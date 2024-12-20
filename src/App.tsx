@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import SmartFertilization from "./pages/SmartFertilization";
 import FinancialPlanning from "./pages/FinancialPlanning";
 import SupplyChain from "./pages/SupplyChain";
+import Weather from "./pages/Weather";
+import AreaCalculator from "./pages/AreaCalculator";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +28,8 @@ const App = () => (
           <Route path="/fertilization" element={<SmartFertilization />} />
           <Route path="/finance" element={<FinancialPlanning />} />
           <Route path="/supply-chain" element={<SupplyChain />} />
+          <Route path="/weather" element={<Weather />} />
+          <Route path="/area-calculator" element={<AreaCalculator />} />
         </Routes>
         <Toaster />
         <Sonner />
