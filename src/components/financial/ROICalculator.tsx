@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/dashboard/Card";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,16 +8,13 @@ export function ROICalculator() {
   const [investment, setInvestment] = useState(10000);
   const [cropType, setCropType] = useState("corn");
 
-  const calculateROI = (investment: number, cropType: string) => {
-    // Mock ROI calculation - in real app, this would use AI predictions
+  const roiData = useMemo(() => {
     const baseMultiplier = cropType === "corn" ? 1.5 : cropType === "wheat" ? 1.3 : 1.4;
     return Array.from({ length: 12 }, (_, i) => ({
       month: i + 1,
       value: investment * (1 + (baseMultiplier * (i + 1)) / 100),
     }));
-  };
-
-  const roiData = calculateROI(investment, cropType);
+  }, [investment, cropType]);
 
   return (
     <Card title="ROI Calculator" description="Project your investment returns">
