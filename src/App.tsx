@@ -8,7 +8,14 @@ import SmartFertilization from "./pages/SmartFertilization";
 import FinancialPlanning from "./pages/FinancialPlanning";
 import SupplyChain from "./pages/SupplyChain";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
