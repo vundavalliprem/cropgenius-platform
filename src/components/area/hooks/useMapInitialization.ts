@@ -9,10 +9,10 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     let isMounted = true;
 
-    if (!container.current) return;
+    const initializeMap = () => {
+      if (!container.current || map.current) return;
 
-    try {
-      if (!map.current) {
+      try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
         const mapInstance = new mapboxgl.Map({
@@ -23,28 +23,29 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         });
 
         mapInstance.once('load', () => {
-          if (isMounted && mapInstance) {
-            mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-            setIsMapReady(true);
-          }
+          if (!isMounted) return;
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          setIsMapReady(true);
         });
 
         map.current = mapInstance;
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        if (isMounted) {
+          setMapError('Failed to initialize map. Please try again later.');
+        }
       }
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      if (isMounted) {
-        setMapError('Failed to initialize map. Please try again later.');
-      }
-    }
+    };
+
+    initializeMap();
 
     return () => {
       isMounted = false;
       if (map.current) {
         map.current.remove();
         map.current = null;
-        setIsMapReady(false);
       }
+      setIsMapReady(false);
     };
   }, [container]);
 
