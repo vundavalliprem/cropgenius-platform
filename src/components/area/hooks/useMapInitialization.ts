@@ -15,54 +15,57 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
-    if (!container.current) return;
+    let mounted = true;
 
-    // Set access token first
-    mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+    const initializeMap = async () => {
+      if (!container.current) return;
 
-    try {
-      // Only create new map if none exists
-      if (!mapInstanceRef.current) {
-        const map = new mapboxgl.Map({
-          container: container.current,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          center: [-95.7129, 37.0902],
-          zoom: 15,
-        });
+      try {
+        mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
 
-        // Use once instead of on to prevent memory leaks
-        map.once('load', () => {
-          if (map) {
-            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-            // Update state with serializable values only
-            setMapState({ isReady: true, error: null });
-          }
-        });
+        if (!mapInstanceRef.current) {
+          const map = new mapboxgl.Map({
+            container: container.current,
+            style: 'mapbox://styles/mapbox/satellite-v9',
+            center: [-95.7129, 37.0902],
+            zoom: 15,
+          });
 
-        mapInstanceRef.current = map;
+          await new Promise<void>((resolve) => {
+            map.once('load', () => {
+              if (mounted) {
+                map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+                mapInstanceRef.current = map;
+                setMapState({ isReady: true, error: null });
+              }
+              resolve();
+            });
+          });
+        }
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        if (mounted) {
+          setMapState({
+            isReady: false,
+            error: 'Failed to initialize map. Please try again later.'
+          });
+        }
       }
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      // Ensure error message is serializable
-      setMapState({
-        isReady: false,
-        error: 'Failed to initialize map. Please try again later.'
-      });
-    }
+    };
 
-    // Cleanup function
+    initializeMap();
+
     return () => {
+      mounted = false;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [container]); // Only depend on container ref
+  }, [container]);
 
-  // Return a simple getter that returns a serializable value or null
   const getMap = () => mapInstanceRef.current;
 
-  // Return only serializable values
   return {
     isReady: mapState.isReady,
     error: mapState.error,
