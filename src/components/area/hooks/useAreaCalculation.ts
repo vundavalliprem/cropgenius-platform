@@ -34,7 +34,8 @@ export const useAreaCalculation = () => {
     }
     area = Math.abs(area) / 2;
     
-    return Number((area * UNITS[selectedUnit].multiplier).toFixed(2));
+    const result = Number((area * UNITS[selectedUnit].multiplier).toFixed(2));
+    return isNaN(result) ? 0 : result;
   }, [selectedUnit]);
 
   const requestLocation = useCallback(async () => {
@@ -45,7 +46,12 @@ export const useAreaCalculation = () => {
       
       if (!mountedRef.current) return null;
       
-      return [position.coords.longitude, position.coords.latitude] as [number, number];
+      const coords: [number, number] = [
+        Number(position.coords.longitude.toFixed(6)),
+        Number(position.coords.latitude.toFixed(6))
+      ];
+      
+      return coords;
     } catch (error) {
       if (!mountedRef.current) return null;
       
