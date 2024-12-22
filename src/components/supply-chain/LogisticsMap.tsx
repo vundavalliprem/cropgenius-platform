@@ -13,81 +13,71 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
   const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!mapContainer.current || map.current) return;
 
-    const initializeMap = () => {
-      if (!mapContainer.current || map.current) return;
+    try {
+      mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+      
+      const mapInstance = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [-95.7129, 37.0902],
+        zoom: 3,
+      });
 
-      try {
-        mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
-        
-        const mapInstance = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/light-v11',
-          center: [-95.7129, 37.0902],
-          zoom: 3,
+      mapInstance.on('load', () => {
+        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // Mock delivery route data
+        const route = {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [-122.4194, 37.7749],
+              [-118.2437, 34.0522],
+              [-112.0740, 33.4484],
+              [-96.7970, 32.7767],
+            ],
+          },
+        };
+
+        mapInstance.addSource('route', {
+          type: 'geojson',
+          data: route,
         });
 
-        mapInstance.once('load', () => {
-          if (!isMounted) return;
-          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-          // Mock delivery route data
-          const route = {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [-122.4194, 37.7749],
-                [-118.2437, 34.0522],
-                [-112.0740, 33.4484],
-                [-96.7970, 32.7767],
-              ],
-            },
-          };
-
-          mapInstance.addSource('route', {
-            type: 'geojson',
-            data: route as any,
-          });
-
-          mapInstance.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
-            },
-            paint: {
-              'line-color': '#2D5A27',
-              'line-width': 3,
-              'line-dasharray': [2, 2],
-            },
-          });
-
-          // Add markers for each point
-          (route.geometry.coordinates as [number, number][]).forEach((coord) => {
-            new mapboxgl.Marker({ color: '#2D5A27' })
-              .setLngLat(coord)
-              .addTo(mapInstance);
-          });
+        mapInstance.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#2D5A27',
+            'line-width': 3,
+            'line-dasharray': [2, 2],
+          },
         });
 
-        map.current = mapInstance;
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        if (isMounted) {
-          setMapError('Failed to initialize map. Please try again later.');
-        }
-      }
-    };
+        // Add markers for each point
+        route.geometry.coordinates.forEach((coord) => {
+          new mapboxgl.Marker({ color: '#2D5A27' })
+            .setLngLat(coord)
+            .addTo(mapInstance);
+        });
+      });
 
-    initializeMap();
+      map.current = mapInstance;
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError('Failed to initialize map. Please try again later.');
+    }
 
     return () => {
-      isMounted = false;
       if (map.current) {
         map.current.remove();
         map.current = null;
