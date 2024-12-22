@@ -4,10 +4,19 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Square } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 interface AreaMapProps {
   className?: string;
 }
+
+const UNITS = {
+  acres: { label: 'Acres', multiplier: 0.000247105 },
+  hectares: { label: 'Hectares', multiplier: 0.0001 },
+  sqMeters: { label: 'Square Meters', multiplier: 1 },
+  sqYards: { label: 'Square Yards', multiplier: 1.19599 }
+};
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -15,6 +24,50 @@ export function AreaMap({ className }: AreaMapProps) {
   const [mapError, setMapError] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [coordinates, setCoordinates] = useState<[number, number][]>([]);
+  const [selectedUnit, setSelectedUnit] = useState<keyof typeof UNITS>('acres');
+  const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
+
+  const requestLocation = async () => {
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      if (map.current) {
+        map.current.flyTo({
+          center: [position.coords.longitude, position.coords.latitude],
+          zoom: 15
+        });
+      }
+      toast({
+        title: "Location accessed",
+        description: "Map centered to your current location",
+      });
+    } catch (error) {
+      toast({
+        title: "Location access denied",
+        description: "Please enable location access to use GPS tracking",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const calculateArea = (coords: [number, number][]) => {
+    if (coords.length < 3) return 0;
+    
+    // Calculate area using the Shoelace formula
+    let area = 0;
+    for (let i = 0; i < coords.length; i++) {
+      const j = (i + 1) % coords.length;
+      area += coords[i][0] * coords[j][1];
+      area -= coords[j][0] * coords[i][1];
+    }
+    area = Math.abs(area) / 2;
+    
+    // Convert to selected unit
+    const convertedArea = area * UNITS[selectedUnit].multiplier;
+    return Number(convertedArea.toFixed(2));
+  };
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -32,19 +85,16 @@ export function AreaMap({ className }: AreaMapProps) {
       map.current = mapInstance;
       mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-      // Add click handler for drawing
       mapInstance.on('click', (e) => {
         if (!isDrawing) return;
 
         const newCoord: [number, number] = [e.lngLat.lng, e.lngLat.lat];
         setCoordinates(prev => [...prev, newCoord]);
 
-        // Add marker at clicked point
         new mapboxgl.Marker({ color: '#2D5A27' })
           .setLngLat(newCoord)
           .addTo(mapInstance);
 
-        // Draw polygon if we have at least 3 points
         if (coordinates.length >= 2) {
           const data = {
             type: 'Feature',
@@ -55,7 +105,6 @@ export function AreaMap({ className }: AreaMapProps) {
             properties: {},
           };
 
-          // Remove existing layer and source if they exist
           if (mapInstance.getLayer('area-polygon')) {
             mapInstance.removeLayer('area-polygon');
           }
@@ -63,7 +112,6 @@ export function AreaMap({ className }: AreaMapProps) {
             mapInstance.removeSource('area-source');
           }
 
-          // Add new layer
           mapInstance.addSource('area-source', {
             type: 'geojson',
             data: data as any,
@@ -78,6 +126,9 @@ export function AreaMap({ className }: AreaMapProps) {
               'fill-opacity': 0.3,
             },
           });
+
+          const area = calculateArea([...coordinates, newCoord]);
+          setCalculatedArea(area);
         }
       });
 
@@ -92,22 +143,23 @@ export function AreaMap({ className }: AreaMapProps) {
         map.current = null;
       }
     };
-  }, [isDrawing, coordinates]);
+  }, [isDrawing, coordinates, selectedUnit]);
 
   const handleDrawToggle = () => {
     if (isDrawing) {
-      // Finish drawing
       setIsDrawing(false);
-      // Calculate and display area
       if (coordinates.length >= 3) {
-        // Area calculation would go here
-        console.log('Area calculated for coordinates:', coordinates);
+        const area = calculateArea(coordinates);
+        setCalculatedArea(area);
+        toast({
+          title: "Area Calculated",
+          description: `The area is ${area} ${UNITS[selectedUnit].label}`,
+        });
       }
     } else {
-      // Start new drawing
       setIsDrawing(true);
       setCoordinates([]);
-      // Clear existing markers and polygon
+      setCalculatedArea(null);
       if (map.current) {
         const markers = document.getElementsByClassName('mapboxgl-marker');
         while (markers[0]) {
@@ -126,7 +178,7 @@ export function AreaMap({ className }: AreaMapProps) {
   return (
     <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
       <div className="space-y-4">
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <Button
             onClick={handleDrawToggle}
             variant={isDrawing ? "destructive" : "default"}
@@ -134,11 +186,28 @@ export function AreaMap({ className }: AreaMapProps) {
             <Square className="mr-2 h-4 w-4" />
             {isDrawing ? "Finish Drawing" : "Start Drawing"}
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={requestLocation}>
             <MapPin className="mr-2 h-4 w-4" />
             Use GPS
           </Button>
+          <Select value={selectedUnit} onValueChange={(value: keyof typeof UNITS) => setSelectedUnit(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select unit" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(UNITS).map(([key, { label }]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+        {calculatedArea !== null && (
+          <div className="p-4 bg-primary/10 rounded-lg">
+            <p className="text-lg font-semibold">
+              Calculated Area: {calculatedArea} {UNITS[selectedUnit].label}
+            </p>
+          </div>
+        )}
         <div className="h-[500px] relative rounded-lg overflow-hidden">
           {mapError ? (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-red-500">
