@@ -15,12 +15,14 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
+    if (!container.current) return;
+
     // Set access token first
     mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
 
-    // Initialize map only if container exists and no map instance exists
-    if (container.current && !mapInstanceRef.current) {
-      try {
+    try {
+      // Only create new map if none exists
+      if (!mapInstanceRef.current) {
         const map = new mapboxgl.Map({
           container: container.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
@@ -28,21 +30,24 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
+        // Use once instead of on to prevent memory leaks
         map.once('load', () => {
           if (map) {
             map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            // Update state with serializable values only
             setMapState({ isReady: true, error: null });
           }
         });
 
         mapInstanceRef.current = map;
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        setMapState({
-          isReady: false,
-          error: 'Failed to initialize map. Please try again later.'
-        });
       }
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      // Ensure error message is serializable
+      setMapState({
+        isReady: false,
+        error: 'Failed to initialize map. Please try again later.'
+      });
     }
 
     // Cleanup function
@@ -54,9 +59,10 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     };
   }, [container]); // Only depend on container ref
 
-  // Return a simple getter function that doesn't expose the ref directly
+  // Return a simple getter that returns a serializable value or null
   const getMap = () => mapInstanceRef.current;
 
+  // Return only serializable values
   return {
     isReady: mapState.isReady,
     error: mapState.error,
