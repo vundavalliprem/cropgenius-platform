@@ -14,7 +14,7 @@ interface AreaMapProps {
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const { map, mapError } = useMapInitialization(mapContainer);
+  const { map, mapError, isMapReady } = useMapInitialization(mapContainer);
   const {
     coordinates,
     setCoordinates,
@@ -27,7 +27,7 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   const handleDrawToggle = () => {
-    if (!map.current) return;
+    if (!map.current || !isMapReady) return;
 
     if (isDrawing) {
       setIsDrawing(false);
@@ -55,6 +55,7 @@ export function AreaMap({ className }: AreaMapProps) {
   };
 
   const handleLocationRequest = async () => {
+    if (!isMapReady) return;
     const coords = await requestLocation();
     if (coords && map.current) {
       map.current.flyTo({
@@ -71,11 +72,16 @@ export function AreaMap({ className }: AreaMapProps) {
           <Button
             onClick={handleDrawToggle}
             variant={isDrawing ? "destructive" : "default"}
+            disabled={!isMapReady}
           >
             <Square className="mr-2 h-4 w-4" />
             {isDrawing ? "Finish Drawing" : "Start Drawing"}
           </Button>
-          <Button variant="outline" onClick={handleLocationRequest}>
+          <Button 
+            variant="outline" 
+            onClick={handleLocationRequest}
+            disabled={!isMapReady}
+          >
             <MapPin className="mr-2 h-4 w-4" />
             Use GPS
           </Button>

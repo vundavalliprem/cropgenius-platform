@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl';
 export const useMapInitialization = (container: React.RefObject<HTMLDivElement>) => {
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   useEffect(() => {
     let mapInstance: mapboxgl.Map | null = null;
@@ -21,12 +22,18 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        await new Promise((resolve) => {
-          mapInstance?.once('load', resolve);
+        // Wait for map to load before setting it as ready
+        await new Promise<void>((resolve) => {
+          mapInstance?.once('load', () => {
+            setIsMapReady(true);
+            resolve();
+          });
         });
 
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        map.current = mapInstance;
+        if (mapInstance) {
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          map.current = mapInstance;
+        }
 
       } catch (error) {
         console.error('Error initializing map:', error);
@@ -36,13 +43,15 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
 
     initializeMap();
 
+    // Cleanup function
     return () => {
       if (mapInstance) {
+        setIsMapReady(false);
         mapInstance.remove();
         map.current = null;
       }
     };
   }, [container]);
 
-  return { map, mapError };
+  return { map, mapError, isMapReady };
 };
