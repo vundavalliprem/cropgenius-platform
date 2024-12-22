@@ -56,7 +56,7 @@ export function AreaMap({ className }: AreaMapProps) {
     const coords = await requestLocation();
     if (coords && map.current) {
       map.current.flyTo({
-        center: coords,
+        center: coords as [number, number],
         zoom: 15
       });
     }

@@ -9,13 +9,12 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     if (!container.current) return;
 
     try {
-      // Using a different token that should work
       mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
       
       const mapInstance = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
+        center: [-95.7129, 37.0902] as [number, number],
         zoom: 15,
       });
 
