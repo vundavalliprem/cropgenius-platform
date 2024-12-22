@@ -7,9 +7,9 @@ interface LogisticsMapProps {
   className?: string;
 }
 
-interface RouteFeature extends GeoJSON.Feature {
+interface RouteFeature {
   type: 'Feature';
-  properties: {};
+  properties: Record<string, unknown>;
   geometry: {
     type: 'LineString';
     coordinates: [number, number][];
@@ -25,71 +25,75 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    try {
-      mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
-      
-      const mapInstance = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
-        center: [-95.7129, 37.0902],
-        zoom: 3,
-      });
-
-      mapInstance.once('load', () => {
-        if (!isMounted.current || !mapInstance) return;
-
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-        // Mock delivery route data with proper typing
-        const route: RouteFeature = {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [-122.4194, 37.7749],
-              [-118.2437, 34.0522],
-              [-112.0740, 33.4484],
-              [-96.7970, 32.7767],
-            ],
-          },
-        };
-
-        mapInstance.addSource('route', {
-          type: 'geojson',
-          data: route,
+    const initializeMap = () => {
+      try {
+        mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+        
+        const mapInstance = new mapboxgl.Map({
+          container: mapContainer.current!,
+          style: 'mapbox://styles/mapbox/light-v11',
+          center: [-95.7129, 37.0902],
+          zoom: 3,
         });
 
-        mapInstance.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
-          paint: {
-            'line-color': '#2D5A27',
-            'line-width': 3,
-            'line-dasharray': [2, 2],
-          },
+        mapInstance.once('load', () => {
+          if (!isMounted.current || !mapInstance) return;
+
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+          // Mock delivery route data
+          const route: RouteFeature = {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [-122.4194, 37.7749],
+                [-118.2437, 34.0522],
+                [-112.0740, 33.4484],
+                [-96.7970, 32.7767],
+              ],
+            },
+          };
+
+          mapInstance.addSource('route', {
+            type: 'geojson',
+            data: route,
+          });
+
+          mapInstance.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': '#2D5A27',
+              'line-width': 3,
+              'line-dasharray': [2, 2],
+            },
+          });
+
+          // Add markers for each point
+          route.geometry.coordinates.forEach((coord: [number, number]) => {
+            new mapboxgl.Marker({ color: '#2D5A27' })
+              .setLngLat(coord)
+              .addTo(mapInstance);
+          });
         });
 
-        // Add markers for each point with proper typing
-        route.geometry.coordinates.forEach((coord: [number, number]) => {
-          new mapboxgl.Marker({ color: '#2D5A27' })
-            .setLngLat(coord)
-            .addTo(mapInstance);
-        });
-      });
-
-      map.current = mapInstance;
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      if (isMounted.current) {
-        setMapError('Failed to initialize map. Please try again later.');
+        map.current = mapInstance;
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        if (isMounted.current) {
+          setMapError('Failed to initialize map. Please try again later.');
+        }
       }
-    }
+    };
+
+    initializeMap();
 
     return () => {
       isMounted.current = false;
