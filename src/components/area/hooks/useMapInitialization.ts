@@ -18,42 +18,34 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     // Set access token first
     mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
 
-    // Guard clause inside the effect
-    if (!container.current || mapInstanceRef.current) {
-      return () => {
-        // Cleanup even if we didn't initialize
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.remove();
-          mapInstanceRef.current = null;
-        }
-      };
+    // Initialize map only if container exists and no map instance exists
+    if (container.current && !mapInstanceRef.current) {
+      try {
+        const map = new mapboxgl.Map({
+          container: container.current,
+          style: 'mapbox://styles/mapbox/satellite-v9',
+          center: [-95.7129, 37.0902],
+          zoom: 15,
+        });
+
+        map.once('load', () => {
+          if (map) {
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            setMapState({ isReady: true, error: null });
+          }
+        });
+
+        mapInstanceRef.current = map;
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        setMapState({
+          isReady: false,
+          error: 'Failed to initialize map. Please try again later.'
+        });
+      }
     }
 
-    let map: mapboxgl.Map | null = null;
-    
-    try {
-      map = new mapboxgl.Map({
-        container: container.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
-
-      map.once('load', () => {
-        map?.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        setMapState({ isReady: true, error: null });
-      });
-
-      mapInstanceRef.current = map;
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      setMapState({
-        isReady: false,
-        error: 'Failed to initialize map. Please try again later.'
-      });
-    }
-
-    // Return cleanup function
+    // Cleanup function
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -62,6 +54,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     };
   }, [container]); // Only depend on container ref
 
+  // Return a simple getter function that doesn't expose the ref directly
   const getMap = () => mapInstanceRef.current;
 
   return {
