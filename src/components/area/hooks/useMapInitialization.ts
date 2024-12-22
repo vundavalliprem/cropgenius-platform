@@ -21,8 +21,12 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
+        // Use once instead of on to prevent multiple handlers
         mapInstance.once('load', () => {
-          if (!isMounted.current) return;
+          if (!isMounted.current) {
+            mapInstance.remove();
+            return;
+          }
           
           mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
           setIsMapReady(true);
@@ -37,9 +41,11 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
-    initializeMap();
+    // Initialize map after a small delay to ensure proper cleanup
+    const timeoutId = setTimeout(initializeMap, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       isMounted.current = false;
       if (map.current) {
         map.current.remove();
