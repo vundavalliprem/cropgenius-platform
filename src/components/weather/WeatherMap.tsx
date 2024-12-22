@@ -16,7 +16,7 @@ export function WeatherMap({ className }: WeatherMapProps) {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    const initializeMap = () => {
+    const initializeMap = async () => {
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
@@ -27,54 +27,58 @@ export function WeatherMap({ className }: WeatherMapProps) {
           zoom: 4,
         });
 
-        mapInstance.once('load', () => {
-          if (!isMounted.current || !mapInstance) {
-            mapInstance.remove();
-            return;
-          }
+        await new Promise<void>((resolve) => {
+          mapInstance.once('load', () => {
+            if (!isMounted.current) {
+              mapInstance.remove();
+              return;
+            }
 
-          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-          mapInstance.addSource('temperature', {
-            type: 'geojson',
-            data: {
-              type: 'FeatureCollection',
-              features: [
-                {
-                  type: 'Feature',
-                  geometry: {
-                    type: 'Point',
-                    coordinates: [-95.7129, 37.0902],
+            mapInstance.addSource('temperature', {
+              type: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [-95.7129, 37.0902],
+                    },
+                    properties: {
+                      temperature: 75,
+                    },
                   },
-                  properties: {
-                    temperature: 75,
-                  },
-                },
-              ],
-            },
-          });
+                ],
+              },
+            });
 
-          mapInstance.addLayer({
-            id: 'temperature-heat',
-            type: 'heatmap',
-            source: 'temperature',
-            paint: {
-              'heatmap-weight': ['interpolate', ['linear'], ['get', 'temperature'], 0, 0, 100, 1],
-              'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 9, 3],
-              'heatmap-color': [
-                'interpolate',
-                ['linear'],
-                ['heatmap-density'],
-                0, 'rgba(33,102,172,0)',
-                0.2, 'rgb(103,169,207)',
-                0.4, 'rgb(209,229,240)',
-                0.6, 'rgb(253,219,199)',
-                0.8, 'rgb(239,138,98)',
-                1, 'rgb(178,24,43)',
-              ],
-              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 9, 20],
-              'heatmap-opacity': 0.7,
-            },
+            mapInstance.addLayer({
+              id: 'temperature-heat',
+              type: 'heatmap',
+              source: 'temperature',
+              paint: {
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'temperature'], 0, 0, 100, 1],
+                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 9, 3],
+                'heatmap-color': [
+                  'interpolate',
+                  ['linear'],
+                  ['heatmap-density'],
+                  0, 'rgba(33,102,172,0)',
+                  0.2, 'rgb(103,169,207)',
+                  0.4, 'rgb(209,229,240)',
+                  0.6, 'rgb(253,219,199)',
+                  0.8, 'rgb(239,138,98)',
+                  1, 'rgb(178,24,43)',
+                ],
+                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 9, 20],
+                'heatmap-opacity': 0.7,
+              },
+            });
+
+            resolve();
           });
         });
 
@@ -87,7 +91,9 @@ export function WeatherMap({ className }: WeatherMapProps) {
       }
     };
 
-    const timeoutId = setTimeout(initializeMap, 100);
+    const timeoutId = setTimeout(() => {
+      initializeMap().catch(console.error);
+    }, 100);
 
     return () => {
       clearTimeout(timeoutId);

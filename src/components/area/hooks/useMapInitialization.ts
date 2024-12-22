@@ -10,7 +10,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     if (!container.current || map.current) return;
 
-    const initializeMap = () => {
+    const initializeMap = async () => {
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
@@ -21,14 +21,17 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        mapInstance.once('load', () => {
-          if (!isMounted.current) {
-            mapInstance.remove();
-            return;
-          }
-          
-          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          setIsMapReady(true);
+        await new Promise<void>((resolve) => {
+          mapInstance.once('load', () => {
+            if (!isMounted.current) {
+              mapInstance.remove();
+              return;
+            }
+            
+            mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            setIsMapReady(true);
+            resolve();
+          });
         });
 
         map.current = mapInstance;
@@ -40,7 +43,9 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
-    const timeoutId = setTimeout(initializeMap, 100);
+    const timeoutId = setTimeout(() => {
+      initializeMap().catch(console.error);
+    }, 100);
 
     return () => {
       clearTimeout(timeoutId);

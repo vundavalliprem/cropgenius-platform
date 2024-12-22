@@ -25,7 +25,7 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    const initializeMap = () => {
+    const initializeMap = async () => {
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
@@ -36,52 +36,56 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
           zoom: 3,
         });
 
-        mapInstance.once('load', () => {
-          if (!isMounted.current || !mapInstance) {
-            mapInstance.remove();
-            return;
-          }
+        await new Promise<void>((resolve) => {
+          mapInstance.once('load', () => {
+            if (!isMounted.current) {
+              mapInstance.remove();
+              return;
+            }
 
-          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-          const route: RouteFeature = {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [-122.4194, 37.7749],
-                [-118.2437, 34.0522],
-                [-112.0740, 33.4484],
-                [-96.7970, 32.7767],
-              ],
-            },
-          };
+            const route: RouteFeature = {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [-122.4194, 37.7749],
+                  [-118.2437, 34.0522],
+                  [-112.0740, 33.4484],
+                  [-96.7970, 32.7767],
+                ] as [number, number][],
+              },
+            };
 
-          mapInstance.addSource('route', {
-            type: 'geojson',
-            data: route,
-          });
+            mapInstance.addSource('route', {
+              type: 'geojson',
+              data: route as any,
+            });
 
-          mapInstance.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
-            },
-            paint: {
-              'line-color': '#2D5A27',
-              'line-width': 3,
-              'line-dasharray': [2, 2],
-            },
-          });
+            mapInstance.addLayer({
+              id: 'route',
+              type: 'line',
+              source: 'route',
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round',
+              },
+              paint: {
+                'line-color': '#2D5A27',
+                'line-width': 3,
+                'line-dasharray': [2, 2],
+              },
+            });
 
-          route.geometry.coordinates.forEach((coord) => {
-            new mapboxgl.Marker({ color: '#2D5A27' })
-              .setLngLat(coord)
-              .addTo(mapInstance);
+            route.geometry.coordinates.forEach((coord) => {
+              new mapboxgl.Marker({ color: '#2D5A27' })
+                .setLngLat(coord)
+                .addTo(mapInstance);
+            });
+
+            resolve();
           });
         });
 
@@ -94,7 +98,9 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
       }
     };
 
-    const timeoutId = setTimeout(initializeMap, 100);
+    const timeoutId = setTimeout(() => {
+      initializeMap().catch(console.error);
+    }, 100);
 
     return () => {
       clearTimeout(timeoutId);
