@@ -37,11 +37,13 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
         });
 
         mapInstance.once('load', () => {
-          if (!isMounted.current || !mapInstance) return;
+          if (!isMounted.current || !mapInstance) {
+            mapInstance.remove();
+            return;
+          }
 
           mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-          // Mock delivery route data
           const route: RouteFeature = {
             type: 'Feature',
             properties: {},
@@ -76,8 +78,7 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
             },
           });
 
-          // Add markers for each point
-          route.geometry.coordinates.forEach((coord: [number, number]) => {
+          route.geometry.coordinates.forEach((coord) => {
             new mapboxgl.Marker({ color: '#2D5A27' })
               .setLngLat(coord)
               .addTo(mapInstance);
@@ -93,9 +94,10 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
       }
     };
 
-    initializeMap();
+    const timeoutId = setTimeout(initializeMap, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       isMounted.current = false;
       if (map.current) {
         map.current.remove();

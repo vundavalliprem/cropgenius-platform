@@ -28,11 +28,13 @@ export function WeatherMap({ className }: WeatherMapProps) {
         });
 
         mapInstance.once('load', () => {
-          if (!isMounted.current || !mapInstance) return;
+          if (!isMounted.current || !mapInstance) {
+            mapInstance.remove();
+            return;
+          }
 
           mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-          // Add temperature heatmap layer
           mapInstance.addSource('temperature', {
             type: 'geojson',
             data: {
@@ -85,9 +87,10 @@ export function WeatherMap({ className }: WeatherMapProps) {
       }
     };
 
-    initializeMap();
+    const timeoutId = setTimeout(initializeMap, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       isMounted.current = false;
       if (map.current) {
         map.current.remove();

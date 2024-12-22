@@ -21,7 +21,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        // Use once instead of on to prevent multiple handlers
         mapInstance.once('load', () => {
           if (!isMounted.current) {
             mapInstance.remove();
@@ -41,7 +40,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
-    // Initialize map after a small delay to ensure proper cleanup
     const timeoutId = setTimeout(initializeMap, 100);
 
     return () => {
