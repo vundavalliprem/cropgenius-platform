@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from "@/components/ui/use-toast";
 
 export const UNITS = {
@@ -14,6 +14,13 @@ export const useAreaCalculation = () => {
   const [coordinates, setCoordinates] = useState<[number, number][]>([]);
   const [selectedUnit, setSelectedUnit] = useState<AreaUnit>('acres');
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const calculateArea = useCallback((coords: [number, number][]) => {
     if (coords.length < 3) return 0;
@@ -36,29 +43,51 @@ export const useAreaCalculation = () => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
       });
       
-      toast({
-        title: "Location accessed",
-        description: "Map centered to your current location",
-      });
+      if (isMounted.current) {
+        toast({
+          title: "Location accessed",
+          description: "Map centered to your current location",
+        });
+      }
       
       return [position.coords.longitude, position.coords.latitude] as [number, number];
     } catch (error) {
-      toast({
-        title: "Location access denied",
-        description: "Please enable location access to use GPS tracking",
-        variant: "destructive",
-      });
+      if (isMounted.current) {
+        toast({
+          title: "Location access denied",
+          description: "Please enable location access to use GPS tracking",
+          variant: "destructive",
+        });
+      }
       return null;
+    }
+  }, []);
+
+  const safeSetCoordinates = useCallback((newCoords: [number, number][]) => {
+    if (isMounted.current) {
+      setCoordinates(newCoords);
+    }
+  }, []);
+
+  const safeSetCalculatedArea = useCallback((area: number | null) => {
+    if (isMounted.current) {
+      setCalculatedArea(area);
+    }
+  }, []);
+
+  const safeSetSelectedUnit = useCallback((unit: AreaUnit) => {
+    if (isMounted.current) {
+      setSelectedUnit(unit);
     }
   }, []);
 
   return {
     coordinates,
-    setCoordinates,
+    setCoordinates: safeSetCoordinates,
     selectedUnit,
-    setSelectedUnit,
+    setSelectedUnit: safeSetSelectedUnit,
     calculatedArea,
-    setCalculatedArea,
+    setCalculatedArea: safeSetCalculatedArea,
     calculateArea,
     requestLocation,
   };
