@@ -9,41 +9,31 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     if (!container.current) return;
 
-    let mounted = true;
+    mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+    
+    try {
+      const map = new mapboxgl.Map({
+        container: container.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
 
-    const initializeMap = () => {
-      try {
-        mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
-        
-        const map = new mapboxgl.Map({
-          container: container.current!,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          center: [-95.7129, 37.0902],
-          zoom: 15,
-        });
+      map.on('load', () => {
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapInstanceRef.current = map;
+        setIsReady(true);
+      });
 
-        map.once('load', () => {
-          if (!mounted) return;
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          mapInstanceRef.current = map;
-          setIsReady(true);
-        });
-      } catch (err) {
-        if (!mounted) return;
-        setError('Failed to initialize map. Please try again later.');
-        console.error('Error initializing map:', err);
-      }
-    };
-
-    initializeMap();
-
-    return () => {
-      mounted = false;
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+      return () => {
+        map.remove();
         mapInstanceRef.current = null;
-      }
-    };
+        setIsReady(false);
+      };
+    } catch (err) {
+      setError('Failed to initialize map. Please try again later.');
+      console.error('Error initializing map:', err);
+    }
   }, [container]);
 
   const getMap = () => mapInstanceRef.current;
