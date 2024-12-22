@@ -9,32 +9,41 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     if (!container.current) return;
 
-    try {
-      mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
-      
-      const map = new mapboxgl.Map({
-        container: container.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    let mounted = true;
 
-      map.once('load', () => {
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapInstanceRef.current = map;
-        setIsReady(true);
-      });
+    const initializeMap = () => {
+      try {
+        mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+        
+        const map = new mapboxgl.Map({
+          container: container.current!,
+          style: 'mapbox://styles/mapbox/satellite-v9',
+          center: [-95.7129, 37.0902],
+          zoom: 15,
+        });
 
-      return () => {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.remove();
-          mapInstanceRef.current = null;
-        }
-      };
-    } catch (err) {
-      setError('Failed to initialize map. Please try again later.');
-      console.error('Error initializing map:', err);
-    }
+        map.once('load', () => {
+          if (!mounted) return;
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapInstanceRef.current = map;
+          setIsReady(true);
+        });
+      } catch (err) {
+        if (!mounted) return;
+        setError('Failed to initialize map. Please try again later.');
+        console.error('Error initializing map:', err);
+      }
+    };
+
+    initializeMap();
+
+    return () => {
+      mounted = false;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
   }, [container]);
 
   const getMap = () => mapInstanceRef.current;
