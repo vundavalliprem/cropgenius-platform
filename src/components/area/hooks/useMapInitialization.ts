@@ -5,6 +5,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     if (!container.current || map.current) return;
@@ -19,18 +20,23 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         zoom: 15,
       });
 
-      mapInstance.on('load', () => {
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        setIsMapReady(true);
+      mapInstance.once('load', () => {
+        if (isMounted.current) {
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          setIsMapReady(true);
+        }
       });
 
       map.current = mapInstance;
     } catch (error) {
       console.error('Error initializing map:', error);
-      setMapError('Failed to initialize map. Please try again later.');
+      if (isMounted.current) {
+        setMapError('Failed to initialize map. Please try again later.');
+      }
     }
 
     return () => {
+      isMounted.current = false;
       if (map.current) {
         map.current.remove();
         map.current = null;

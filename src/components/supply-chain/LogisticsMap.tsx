@@ -7,10 +7,20 @@ interface LogisticsMapProps {
   className?: string;
 }
 
+interface RouteFeature extends GeoJSON.Feature {
+  type: 'Feature';
+  properties: {};
+  geometry: {
+    type: 'LineString';
+    coordinates: [number, number][];
+  };
+}
+
 export function LogisticsMap({ className }: LogisticsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -25,11 +35,13 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
         zoom: 3,
       });
 
-      mapInstance.on('load', () => {
+      mapInstance.once('load', () => {
+        if (!isMounted.current || !mapInstance) return;
+
         mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        // Mock delivery route data
-        const route = {
+        // Mock delivery route data with proper typing
+        const route: RouteFeature = {
           type: 'Feature',
           properties: {},
           geometry: {
@@ -63,8 +75,8 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
           },
         });
 
-        // Add markers for each point
-        route.geometry.coordinates.forEach((coord) => {
+        // Add markers for each point with proper typing
+        route.geometry.coordinates.forEach((coord: [number, number]) => {
           new mapboxgl.Marker({ color: '#2D5A27' })
             .setLngLat(coord)
             .addTo(mapInstance);
@@ -74,10 +86,13 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
       map.current = mapInstance;
     } catch (error) {
       console.error('Error initializing map:', error);
-      setMapError('Failed to initialize map. Please try again later.');
+      if (isMounted.current) {
+        setMapError('Failed to initialize map. Please try again later.');
+      }
     }
 
     return () => {
+      isMounted.current = false;
       if (map.current) {
         map.current.remove();
         map.current = null;
