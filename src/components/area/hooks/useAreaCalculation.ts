@@ -1,22 +1,23 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { toast } from "@/components/ui/use-toast";
-
-export const UNITS = {
-  acres: { label: 'Acres', multiplier: 0.000247105 },
-  hectares: { label: 'Hectares', multiplier: 0.0001 },
-  sqMeters: { label: 'Square Meters', multiplier: 1 },
-  sqYards: { label: 'Square Yards', multiplier: 1.19599 }
-} as const;
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useToast } from "@/components/ui/use-toast";
 
 export type AreaUnit = keyof typeof UNITS;
 
+export const UNITS = {
+  sqMeters: { label: "Square Meters", multiplier: 1 },
+  hectares: { label: "Hectares", multiplier: 0.0001 },
+  acres: { label: "Acres", multiplier: 0.000247105 },
+} as const;
+
 export const useAreaCalculation = () => {
-  const [coordinates, setCoordinates] = useState<[number, number][]>([]);
-  const [selectedUnit, setSelectedUnit] = useState<AreaUnit>('acres');
-  const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
+  const { toast } = useToast();
   const mountedRef = useRef(true);
+  const [coordinates, setCoordinates] = useState<[number, number][]>([]);
+  const [selectedUnit, setSelectedUnit] = useState<AreaUnit>("sqMeters");
+  const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
@@ -33,8 +34,7 @@ export const useAreaCalculation = () => {
     }
     area = Math.abs(area) / 2;
     
-    const convertedArea = area * UNITS[selectedUnit].multiplier;
-    return Number(convertedArea.toFixed(2));
+    return area * UNITS[selectedUnit].multiplier;
   }, [selectedUnit]);
 
   const requestLocation = useCallback(async () => {
@@ -44,12 +44,6 @@ export const useAreaCalculation = () => {
       });
       
       if (!mountedRef.current) return null;
-
-      toast({
-        title: "Location accessed",
-        description: "Map centered to your current location",
-      });
-      
       return [position.coords.longitude, position.coords.latitude] as [number, number];
     } catch (error) {
       if (!mountedRef.current) return null;
@@ -61,7 +55,7 @@ export const useAreaCalculation = () => {
       });
       return null;
     }
-  }, []);
+  }, [toast]);
 
   return {
     coordinates,
