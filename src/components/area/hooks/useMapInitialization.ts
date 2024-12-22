@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 
-type MapState = {
-  isReady: boolean;
-  error: string | null;
-};
-
 export const useMapInitialization = (container: React.RefObject<HTMLDivElement>) => {
-  const [mapState, setMapState] = useState<MapState>({
-    isReady: false,
-    error: null
-  });
-  
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
@@ -20,17 +12,17 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
       
-      const mapInstance = new mapboxgl.Map({
+      const map = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      mapInstance.once('load', () => {
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapInstanceRef.current = mapInstance;
-        setMapState({ isReady: true, error: null });
+      map.once('load', () => {
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapInstanceRef.current = map;
+        setIsReady(true);
       });
 
       return () => {
@@ -39,18 +31,17 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           mapInstanceRef.current = null;
         }
       };
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      setMapState({
-        isReady: false,
-        error: 'Failed to initialize map. Please try again later.'
-      });
+    } catch (err) {
+      setError('Failed to initialize map. Please try again later.');
+      console.error('Error initializing map:', err);
     }
   }, [container]);
 
+  const getMap = () => mapInstanceRef.current;
+
   return {
-    isReady: mapState.isReady,
-    error: mapState.error,
-    getMap: () => mapInstanceRef.current,
+    isReady,
+    error,
+    getMap,
   };
 };
