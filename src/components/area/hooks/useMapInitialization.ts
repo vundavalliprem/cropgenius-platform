@@ -13,13 +13,11 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   });
   
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
-  const isMounted = useRef(true);
+  const initializationTimeout = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!container.current || mapInstanceRef.current) return;
-
     const initializeMap = () => {
-      if (!container.current || !isMounted.current) return;
+      if (!container.current || mapInstanceRef.current) return;
 
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
@@ -31,38 +29,39 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        map.once('load', () => {
-          if (!isMounted.current) return;
+        const onLoad = () => {
           map.addControl(new mapboxgl.NavigationControl(), 'top-right');
           setMapState({ isReady: true, error: null });
-        });
+        };
 
-        map.once('error', () => {
-          if (!isMounted.current) return;
+        const onError = () => {
           setMapState({
             isReady: false,
             error: 'Failed to initialize map. Please try again later.'
           });
-        });
+        };
+
+        map.once('load', onLoad);
+        map.once('error', onError);
 
         mapInstanceRef.current = map;
       } catch (error) {
         console.error('Error initializing map:', error);
-        if (isMounted.current) {
-          setMapState({
-            isReady: false,
-            error: 'Failed to initialize map. Please try again later.'
-          });
-        }
+        setMapState({
+          isReady: false,
+          error: 'Failed to initialize map. Please try again later.'
+        });
       }
     };
 
-    // Small delay to ensure DOM is ready
-    const timeoutId = setTimeout(initializeMap, 0);
+    // Ensure DOM is ready before initializing
+    initializationTimeout.current = window.setTimeout(initializeMap, 100);
 
     return () => {
-      isMounted.current = false;
-      clearTimeout(timeoutId);
+      if (initializationTimeout.current) {
+        window.clearTimeout(initializationTimeout.current);
+      }
+      
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
