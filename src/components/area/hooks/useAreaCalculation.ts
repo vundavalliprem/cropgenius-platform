@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export type AreaUnit = keyof typeof UNITS;
 
@@ -10,10 +10,10 @@ export const UNITS = {
 } as const;
 
 export const useAreaCalculation = () => {
-  const { toast } = useToast();
   const [coordinates, setCoordinates] = useState<[number, number][]>([]);
   const [selectedUnit, setSelectedUnit] = useState<AreaUnit>("sqMeters");
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
+  const { toast } = useToast();
 
   const calculateArea = useCallback((coords: [number, number][]) => {
     if (coords.length < 3) return 0;
