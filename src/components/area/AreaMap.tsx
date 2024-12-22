@@ -14,7 +14,7 @@ interface AreaMapProps {
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const { map, mapError, isMapReady } = useMapInitialization(mapContainer);
+  const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
     coordinates,
     setCoordinates,
@@ -27,7 +27,8 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   const handleDrawToggle = () => {
-    if (!map.current || !isMapReady) return;
+    const map = getMap();
+    if (!map || !isReady) return;
 
     if (isDrawing) {
       setIsDrawing(false);
@@ -45,20 +46,21 @@ export function AreaMap({ className }: AreaMapProps) {
         markers[0].remove();
       }
 
-      if (map.current.getLayer('area-polygon')) {
-        map.current.removeLayer('area-polygon');
+      if (map.getLayer('area-polygon')) {
+        map.removeLayer('area-polygon');
       }
-      if (map.current.getSource('area-source')) {
-        map.current.removeSource('area-source');
+      if (map.getSource('area-source')) {
+        map.removeSource('area-source');
       }
     }
   };
 
   const handleLocationRequest = async () => {
-    if (!isMapReady) return;
+    if (!isReady) return;
     const coords = await requestLocation();
-    if (coords && map.current) {
-      map.current.flyTo({
+    const map = getMap();
+    if (coords && map) {
+      map.flyTo({
         center: coords as [number, number],
         zoom: 15
       });
@@ -72,7 +74,7 @@ export function AreaMap({ className }: AreaMapProps) {
           <Button
             onClick={handleDrawToggle}
             variant={isDrawing ? "destructive" : "default"}
-            disabled={!isMapReady}
+            disabled={!isReady}
           >
             <Square className="mr-2 h-4 w-4" />
             {isDrawing ? "Finish Drawing" : "Start Drawing"}
@@ -80,7 +82,7 @@ export function AreaMap({ className }: AreaMapProps) {
           <Button 
             variant="outline" 
             onClick={handleLocationRequest}
-            disabled={!isMapReady}
+            disabled={!isReady}
           >
             <MapPin className="mr-2 h-4 w-4" />
             Use GPS

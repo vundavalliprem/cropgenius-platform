@@ -1,59 +1,78 @@
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 
+type MapState = {
+  isReady: boolean;
+  error: string | null;
+};
+
 export const useMapInitialization = (container: React.RefObject<HTMLDivElement>) => {
-  const mapInstance = useRef<mapboxgl.Map | null>(null);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [isMapReady, setIsMapReady] = useState(false);
+  const [mapState, setMapState] = useState<MapState>({
+    isReady: false,
+    error: null
+  });
+  
+  // Keep map instance in ref but don't expose it directly
+  const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const isMounted = useRef(true);
 
   useEffect(() => {
-    if (!container.current || mapInstance.current) return;
+    if (!container.current || mapInstanceRef.current) return;
 
-    const initializeMap = () => {
-      try {
-        mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
-        
-        const newMap = new mapboxgl.Map({
-          container: container.current!,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          center: [-95.7129, 37.0902],
-          zoom: 15,
-        });
+    try {
+      mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+      
+      const newMap = new mapboxgl.Map({
+        container: container.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
 
-        const handleMapLoad = () => {
-          if (isMounted.current) {
-            newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
-            mapInstance.current = newMap;
-            setIsMapReady(true);
-          }
-        };
-
-        newMap.once('load', handleMapLoad);
-      } catch (error) {
-        console.error('Error initializing map:', error);
+      newMap.once('load', () => {
         if (isMounted.current) {
-          setMapError('Failed to initialize map. Please try again later.');
+          newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapInstanceRef.current = newMap;
+          setMapState({ isReady: true, error: null });
         }
-      }
-    };
+      });
 
-    const timeoutId = setTimeout(initializeMap, 100);
+      // Handle potential map load errors
+      newMap.on('error', (e) => {
+        if (isMounted.current) {
+          console.error('Map error:', e);
+          setMapState({
+            isReady: false,
+            error: 'Failed to initialize map. Please try again later.'
+          });
+        }
+      });
+
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      if (isMounted.current) {
+        setMapState({
+          isReady: false,
+          error: 'Failed to initialize map. Please try again later.'
+        });
+      }
+    }
 
     return () => {
-      clearTimeout(timeoutId);
       isMounted.current = false;
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
-      setIsMapReady(false);
     };
   }, [container]);
 
+  // Instead of returning the map instance directly, provide methods to interact with it
+  const getMap = () => mapInstanceRef.current;
+
   return {
-    map: mapInstance,
-    mapError,
-    isMapReady,
+    isReady: mapState.isReady,
+    error: mapState.error,
+    getMap, // Return a function to access the map instead of the map itself
   };
 };
