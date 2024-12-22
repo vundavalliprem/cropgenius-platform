@@ -31,24 +31,29 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        map.once('load', () => {
+        const handleLoad = () => {
           if (!mounted.current) return;
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          setMapState({ isReady: true, error: null });
-        });
+          if (map) {
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            setMapState({ isReady: true, error: null });
+          }
+        };
 
-        map.once('error', () => {
+        const handleError = () => {
           if (!mounted.current) return;
           setMapState({
             isReady: false,
             error: 'Failed to initialize map. Please try again later.'
           });
-        });
+        };
+
+        map.on('load', handleLoad);
+        map.on('error', handleError);
 
         mapInstanceRef.current = map;
       } catch (error) {
-        console.error('Error initializing map:', error);
         if (mounted.current) {
+          console.error('Error initializing map:', error);
           setMapState({
             isReady: false,
             error: 'Failed to initialize map. Please try again later.'
@@ -57,12 +62,11 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
-    // Initialize map after a short delay to ensure DOM is ready
-    const timeoutId = window.setTimeout(initializeMap, 100);
+    const timeoutId = setTimeout(initializeMap, 100);
 
     return () => {
       mounted.current = false;
-      window.clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
       
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
