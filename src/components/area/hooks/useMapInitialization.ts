@@ -17,32 +17,25 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     if (!container.current) return;
 
-    let mapInstance: mapboxgl.Map | null = null;
-
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
       
-      mapInstance = new mapboxgl.Map({
+      const mapInstance = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      const onLoad = () => {
-        if (mapInstance) {
-          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          mapInstanceRef.current = mapInstance;
-          setMapState({ isReady: true, error: null });
-        }
-      };
-
-      mapInstance.once('load', onLoad);
+      mapInstance.once('load', () => {
+        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapInstanceRef.current = mapInstance;
+        setMapState({ isReady: true, error: null });
+      });
 
       return () => {
-        if (mapInstance) {
-          mapInstance.off('load', onLoad);
-          mapInstance.remove();
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
           mapInstanceRef.current = null;
         }
       };
