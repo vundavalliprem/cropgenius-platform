@@ -34,7 +34,6 @@ export const useAreaCalculation = () => {
     }
     area = Math.abs(area) / 2;
     
-    // Format the number to avoid floating point precision issues
     return Number((area * UNITS[selectedUnit].multiplier).toFixed(2));
   }, [selectedUnit]);
 
@@ -46,7 +45,6 @@ export const useAreaCalculation = () => {
       
       if (!mountedRef.current) return null;
       
-      // Return a simple array of coordinates
       return [position.coords.longitude, position.coords.latitude] as [number, number];
     } catch (error) {
       if (!mountedRef.current) return null;
