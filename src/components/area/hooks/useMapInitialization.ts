@@ -10,7 +10,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     if (!container.current || mapInstance.current) return;
 
-    const initializeMap = async () => {
+    const initializeMap = () => {
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
@@ -21,7 +21,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        // Use a separate function to handle map load to prevent closure issues
         const handleMapLoad = () => {
           if (isMounted.current) {
             newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -30,7 +29,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           }
         };
 
-        // Use once instead of on to prevent memory leaks
         newMap.once('load', handleMapLoad);
       } catch (error) {
         console.error('Error initializing map:', error);
@@ -40,10 +38,8 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
-    // Use setTimeout to ensure proper initialization timing
     const timeoutId = setTimeout(initializeMap, 100);
 
-    // Cleanup function
     return () => {
       clearTimeout(timeoutId);
       isMounted.current = false;
@@ -55,7 +51,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     };
   }, [container]);
 
-  // Return a new object reference each time to prevent serialization issues
   return {
     map: mapInstance,
     mapError,
