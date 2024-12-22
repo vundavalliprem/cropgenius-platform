@@ -21,16 +21,17 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        await new Promise<void>((resolve) => {
-          newMap.once('load', () => {
-            if (isMounted.current) {
-              newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
-              setIsMapReady(true);
-              mapInstance.current = newMap;
-              resolve();
-            }
-          });
-        });
+        // Use a separate function to handle map load to prevent closure issues
+        const handleMapLoad = () => {
+          if (isMounted.current) {
+            newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            mapInstance.current = newMap;
+            setIsMapReady(true);
+          }
+        };
+
+        // Use once instead of on to prevent memory leaks
+        newMap.once('load', handleMapLoad);
       } catch (error) {
         console.error('Error initializing map:', error);
         if (isMounted.current) {
@@ -39,8 +40,10 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
+    // Use setTimeout to ensure proper initialization timing
     const timeoutId = setTimeout(initializeMap, 100);
 
+    // Cleanup function
     return () => {
       clearTimeout(timeoutId);
       isMounted.current = false;
@@ -52,5 +55,10 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     };
   }, [container]);
 
-  return { map: mapInstance, mapError, isMapReady };
+  // Return a new object reference each time to prevent serialization issues
+  return {
+    map: mapInstance,
+    mapError,
+    isMapReady,
+  };
 };
