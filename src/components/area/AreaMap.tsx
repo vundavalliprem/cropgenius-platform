@@ -27,6 +27,8 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   const handleDrawToggle = () => {
+    if (!map.current) return;
+
     if (isDrawing) {
       setIsDrawing(false);
       if (coordinates.length >= 3) {
@@ -37,17 +39,17 @@ export function AreaMap({ className }: AreaMapProps) {
       setIsDrawing(true);
       setCoordinates([]);
       setCalculatedArea(null);
-      if (map.current) {
-        const markers = document.getElementsByClassName('mapboxgl-marker');
-        while (markers[0]) {
-          markers[0].remove();
-        }
-        if (map.current.getLayer('area-polygon')) {
-          map.current.removeLayer('area-polygon');
-        }
-        if (map.current.getSource('area-source')) {
-          map.current.removeSource('area-source');
-        }
+
+      const markers = document.getElementsByClassName('mapboxgl-marker');
+      while (markers[0]) {
+        markers[0].remove();
+      }
+
+      if (map.current.getLayer('area-polygon')) {
+        map.current.removeLayer('area-polygon');
+      }
+      if (map.current.getSource('area-source')) {
+        map.current.removeSource('area-source');
       }
     }
   };
