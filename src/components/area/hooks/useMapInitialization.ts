@@ -15,12 +15,24 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
+    // Set access token first
     mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
 
-    if (!container.current || mapInstanceRef.current) return;
+    // Guard clause inside the effect
+    if (!container.current || mapInstanceRef.current) {
+      return () => {
+        // Cleanup even if we didn't initialize
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
+      };
+    }
 
+    let map: mapboxgl.Map | null = null;
+    
     try {
-      const map = new mapboxgl.Map({
+      map = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
@@ -28,7 +40,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       });
 
       map.once('load', () => {
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map?.addControl(new mapboxgl.NavigationControl(), 'top-right');
         setMapState({ isReady: true, error: null });
       });
 
@@ -41,13 +53,14 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       });
     }
 
+    // Return cleanup function
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [container]);
+  }, [container]); // Only depend on container ref
 
   const getMap = () => mapInstanceRef.current;
 
