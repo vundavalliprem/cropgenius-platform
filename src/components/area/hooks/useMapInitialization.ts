@@ -18,7 +18,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     mounted.current = true;
 
-    const initializeMap = () => {
+    const initializeMap = async () => {
       if (!container.current || mapInstanceRef.current) return;
 
       try {
@@ -33,10 +33,8 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
 
         const handleLoad = () => {
           if (!mounted.current) return;
-          if (map) {
-            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-            setMapState({ isReady: true, error: null });
-          }
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          setMapState({ isReady: true, error: null });
         };
 
         const handleError = () => {
@@ -47,8 +45,8 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           });
         };
 
-        map.on('load', handleLoad);
-        map.on('error', handleError);
+        map.once('load', handleLoad);
+        map.once('error', handleError);
 
         mapInstanceRef.current = map;
       } catch (error) {
