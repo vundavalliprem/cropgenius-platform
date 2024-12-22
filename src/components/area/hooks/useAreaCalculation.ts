@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import mapboxgl from 'mapbox-gl';
+import { useState, useCallback } from 'react';
 import { toast } from "@/components/ui/use-toast";
 
 export const UNITS = {
@@ -7,7 +6,7 @@ export const UNITS = {
   hectares: { label: 'Hectares', multiplier: 0.0001 },
   sqMeters: { label: 'Square Meters', multiplier: 1 },
   sqYards: { label: 'Square Yards', multiplier: 1.19599 }
-};
+} as const;
 
 export type AreaUnit = keyof typeof UNITS;
 
@@ -16,7 +15,7 @@ export const useAreaCalculation = () => {
   const [selectedUnit, setSelectedUnit] = useState<AreaUnit>('acres');
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
 
-  const calculateArea = (coords: [number, number][]) => {
+  const calculateArea = useCallback((coords: [number, number][]) => {
     if (coords.length < 3) return 0;
     
     let area = 0;
@@ -29,9 +28,9 @@ export const useAreaCalculation = () => {
     
     const convertedArea = area * UNITS[selectedUnit].multiplier;
     return Number(convertedArea.toFixed(2));
-  };
+  }, [selectedUnit]);
 
-  const requestLocation = async () => {
+  const requestLocation = useCallback(async () => {
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
@@ -42,7 +41,7 @@ export const useAreaCalculation = () => {
         description: "Map centered to your current location",
       });
       
-      return [position.coords.longitude, position.coords.latitude];
+      return [position.coords.longitude, position.coords.latitude] as [number, number];
     } catch (error) {
       toast({
         title: "Location access denied",
@@ -51,7 +50,7 @@ export const useAreaCalculation = () => {
       });
       return null;
     }
-  };
+  }, []);
 
   return {
     coordinates,
