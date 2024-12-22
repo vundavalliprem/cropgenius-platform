@@ -14,12 +14,12 @@ export const useAreaCalculation = () => {
   const [coordinates, setCoordinates] = useState<[number, number][]>([]);
   const [selectedUnit, setSelectedUnit] = useState<AreaUnit>('acres');
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
-  const mounted = useRef(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    mounted.current = true;
+    mountedRef.current = true;
     return () => {
-      mounted.current = false;
+      mountedRef.current = false;
     };
   }, []);
 
@@ -39,23 +39,23 @@ export const useAreaCalculation = () => {
   }, [selectedUnit]);
 
   const requestLocation = useCallback(async () => {
-    if (!mounted.current) return null;
+    if (!mountedRef.current) return null;
 
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
       });
       
-      if (mounted.current) {
-        toast({
-          title: "Location accessed",
-          description: "Map centered to your current location",
-        });
-        return [position.coords.longitude, position.coords.latitude] as [number, number];
-      }
-      return null;
+      if (!mountedRef.current) return null;
+
+      toast({
+        title: "Location accessed",
+        description: "Map centered to your current location",
+      });
+      
+      return [position.coords.longitude, position.coords.latitude] as [number, number];
     } catch (error) {
-      if (mounted.current) {
+      if (mountedRef.current) {
         toast({
           title: "Location access denied",
           description: "Please enable location access to use GPS tracking",
@@ -67,19 +67,19 @@ export const useAreaCalculation = () => {
   }, []);
 
   const updateCoordinates = useCallback((newCoords: [number, number][]) => {
-    if (mounted.current) {
+    if (mountedRef.current) {
       setCoordinates(newCoords);
     }
   }, []);
 
   const updateCalculatedArea = useCallback((area: number | null) => {
-    if (mounted.current) {
+    if (mountedRef.current) {
       setCalculatedArea(area);
     }
   }, []);
 
   const updateSelectedUnit = useCallback((unit: AreaUnit) => {
-    if (mounted.current) {
+    if (mountedRef.current) {
       setSelectedUnit(unit);
     }
   }, []);

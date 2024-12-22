@@ -13,46 +13,56 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   });
   
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!container.current || mapInstanceRef.current) return;
+    mountedRef.current = true;
+    
+    const initializeMap = async () => {
+      if (!container.current || mapInstanceRef.current) return;
 
-    const initMap = async () => {
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
         const map = new mapboxgl.Map({
-          container: container.current!,
+          container: container.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
           zoom: 15,
         });
 
-        map.on('load', () => {
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          setMapState({ isReady: true, error: null });
+        mapInstanceRef.current = map;
+
+        map.once('load', () => {
+          if (mountedRef.current) {
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            setMapState({ isReady: true, error: null });
+          }
         });
 
-        map.on('error', () => {
+        map.once('error', () => {
+          if (mountedRef.current) {
+            setMapState({
+              isReady: false,
+              error: 'Failed to initialize map. Please try again later.'
+            });
+          }
+        });
+      } catch (error) {
+        if (mountedRef.current) {
+          console.error('Error initializing map:', error);
           setMapState({
             isReady: false,
             error: 'Failed to initialize map. Please try again later.'
           });
-        });
-
-        mapInstanceRef.current = map;
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        setMapState({
-          isReady: false,
-          error: 'Failed to initialize map. Please try again later.'
-        });
+        }
       }
     };
 
-    initMap();
+    initializeMap();
 
     return () => {
+      mountedRef.current = false;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
