@@ -9,9 +9,9 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     if (!container.current) return;
 
-    mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
-    
     try {
+      mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+      
       const map = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
@@ -19,7 +19,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         zoom: 15,
       });
 
-      map.once('load', () => {
+      map.on('load', () => {
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
         mapRef.current = map;
         setIsReady(true);
