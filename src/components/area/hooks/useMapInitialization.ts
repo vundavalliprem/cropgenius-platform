@@ -16,51 +16,48 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
 
   useEffect(() => {
     let mounted = true;
+    let map: mapboxgl.Map | null = null;
 
-    const initializeMap = async () => {
+    const initMap = async () => {
       if (!container.current) return;
 
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+        
+        map = new mapboxgl.Map({
+          container: container.current,
+          style: 'mapbox://styles/mapbox/satellite-v9',
+          center: [-95.7129, 37.0902],
+          zoom: 15,
+        });
 
-        if (!mapInstanceRef.current) {
-          const map = new mapboxgl.Map({
-            container: container.current,
-            style: 'mapbox://styles/mapbox/satellite-v9',
-            center: [-95.7129, 37.0902],
-            zoom: 15,
-          });
+        map.once('load', () => {
+          if (!mounted) return;
+          
+          map?.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapInstanceRef.current = map;
+          setMapState({ isReady: true, error: null });
+        });
 
-          await new Promise<void>((resolve) => {
-            map.once('load', () => {
-              if (mounted) {
-                map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-                mapInstanceRef.current = map;
-                setMapState({ isReady: true, error: null });
-              }
-              resolve();
-            });
-          });
-        }
       } catch (error) {
+        if (!mounted) return;
         console.error('Error initializing map:', error);
-        if (mounted) {
-          setMapState({
-            isReady: false,
-            error: 'Failed to initialize map. Please try again later.'
-          });
-        }
+        setMapState({
+          isReady: false,
+          error: 'Failed to initialize map. Please try again later.'
+        });
       }
     };
 
-    initializeMap();
+    initMap();
 
     return () => {
       mounted = false;
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+      if (map) {
+        map.remove();
+        map = null;
       }
+      mapInstanceRef.current = null;
     };
   }, [container]);
 
