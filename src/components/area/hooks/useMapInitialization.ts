@@ -13,18 +13,17 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
       
-      const mapInstance = new mapboxgl.Map({
+      const map = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      mapInstance.once('load', () => {
+      map.once('load', () => {
         if (!mountedRef.current) return;
-        
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapRef.current = mapInstance;
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapRef.current = map;
         setIsReady(true);
       });
 
@@ -41,7 +40,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         mapRef.current.remove();
         mapRef.current = null;
       }
-      setIsReady(false);
     };
   }, [container]);
 
