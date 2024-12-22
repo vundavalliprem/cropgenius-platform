@@ -13,12 +13,10 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   });
   
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
-  const mounted = useRef(true);
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    mounted.current = true;
-
-    const initializeMap = async () => {
+    const initializeMap = () => {
       if (!container.current || mapInstanceRef.current) return;
 
       try {
@@ -31,40 +29,35 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           zoom: 15,
         });
 
-        const handleLoad = () => {
-          if (!mounted.current) return;
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map.once('load', () => {
+          if (!mapInstanceRef.current) return;
+          mapInstanceRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
           setMapState({ isReady: true, error: null });
-        };
+        });
 
-        const handleError = () => {
-          if (!mounted.current) return;
+        map.once('error', () => {
           setMapState({
             isReady: false,
             error: 'Failed to initialize map. Please try again later.'
           });
-        };
-
-        map.once('load', handleLoad);
-        map.once('error', handleError);
+        });
 
         mapInstanceRef.current = map;
       } catch (error) {
-        if (mounted.current) {
-          console.error('Error initializing map:', error);
-          setMapState({
-            isReady: false,
-            error: 'Failed to initialize map. Please try again later.'
-          });
-        }
+        console.error('Error initializing map:', error);
+        setMapState({
+          isReady: false,
+          error: 'Failed to initialize map. Please try again later.'
+        });
       }
     };
 
-    const timeoutId = setTimeout(initializeMap, 100);
+    timeoutRef.current = window.setTimeout(initializeMap, 100);
 
     return () => {
-      mounted.current = false;
-      clearTimeout(timeoutId);
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
       
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
