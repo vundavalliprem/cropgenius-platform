@@ -18,9 +18,9 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   useEffect(() => {
     if (!container.current || mapInstanceRef.current) return;
 
+    mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+    
     try {
-      mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
-      
       const map = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
@@ -30,42 +30,38 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
 
       mapInstanceRef.current = map;
 
-      const onLoad = () => {
-        if (mountedRef.current) {
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          setMapState({ isReady: true, error: null });
-        }
+      const handleLoad = () => {
+        if (!mountedRef.current) return;
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        setMapState({ isReady: true, error: null });
       };
 
-      const onError = () => {
-        if (mountedRef.current) {
-          setMapState({
-            isReady: false,
-            error: 'Failed to initialize map. Please try again later.'
-          });
-        }
+      const handleError = () => {
+        if (!mountedRef.current) return;
+        setMapState({
+          isReady: false,
+          error: 'Failed to initialize map. Please try again later.'
+        });
       };
 
-      map.once('load', onLoad);
-      map.once('error', onError);
+      map.once('load', handleLoad);
+      map.once('error', handleError);
 
       return () => {
         mountedRef.current = false;
-        map.off('load', onLoad);
-        map.off('error', onError);
         if (mapInstanceRef.current) {
+          map.off('load', handleLoad);
+          map.off('error', handleError);
           mapInstanceRef.current.remove();
           mapInstanceRef.current = null;
         }
       };
     } catch (error) {
-      if (mountedRef.current) {
-        console.error('Error initializing map:', error);
-        setMapState({
-          isReady: false,
-          error: 'Failed to initialize map. Please try again later.'
-        });
-      }
+      console.error('Error initializing map:', error);
+      setMapState({
+        isReady: false,
+        error: 'Failed to initialize map. Please try again later.'
+      });
       return () => {
         mountedRef.current = false;
       };
