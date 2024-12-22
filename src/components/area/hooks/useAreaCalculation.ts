@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 export type AreaUnit = keyof typeof UNITS;
@@ -11,17 +11,9 @@ export const UNITS = {
 
 export const useAreaCalculation = () => {
   const { toast } = useToast();
-  const mountedRef = useRef(true);
   const [coordinates, setCoordinates] = useState<[number, number][]>([]);
   const [selectedUnit, setSelectedUnit] = useState<AreaUnit>("sqMeters");
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   const calculateArea = useCallback((coords: [number, number][]) => {
     if (coords.length < 3) return 0;
@@ -35,7 +27,7 @@ export const useAreaCalculation = () => {
     area = Math.abs(area) / 2;
     
     const multiplier = UNITS[selectedUnit].multiplier;
-    return Number((area * multiplier).toFixed(6));
+    return Number((area * multiplier).toFixed(2));
   }, [selectedUnit]);
 
   const requestLocation = useCallback(async () => {
@@ -44,15 +36,11 @@ export const useAreaCalculation = () => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
       });
       
-      if (!mountedRef.current) return null;
-      
       return [
         Number(position.coords.longitude.toFixed(6)),
         Number(position.coords.latitude.toFixed(6))
       ] as [number, number];
     } catch (error) {
-      if (!mountedRef.current) return null;
-      
       toast({
         title: "Location access denied",
         description: "Please enable location access to use GPS tracking",
