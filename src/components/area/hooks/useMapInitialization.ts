@@ -19,17 +19,17 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     if (!container.current || mapInstanceRef.current) return;
 
     const initializeMap = () => {
+      if (!container.current || !isMounted.current) return;
+
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
         const map = new mapboxgl.Map({
-          container: container.current!,
+          container: container.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
           zoom: 15,
         });
-
-        mapInstanceRef.current = map;
 
         map.once('load', () => {
           if (!isMounted.current) return;
@@ -45,6 +45,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
           });
         });
 
+        mapInstanceRef.current = map;
       } catch (error) {
         console.error('Error initializing map:', error);
         if (isMounted.current) {
@@ -56,11 +57,12 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
-    // Initialize map with a slight delay to ensure container is ready
-    setTimeout(initializeMap, 100);
+    // Small delay to ensure DOM is ready
+    const timeoutId = setTimeout(initializeMap, 0);
 
     return () => {
       isMounted.current = false;
+      clearTimeout(timeoutId);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
