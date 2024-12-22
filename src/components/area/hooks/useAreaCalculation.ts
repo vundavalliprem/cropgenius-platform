@@ -14,10 +14,9 @@ export const useAreaCalculation = () => {
   const [coordinates, setCoordinates] = useState<[number, number][]>([]);
   const [selectedUnit, setSelectedUnit] = useState<AreaUnit>('acres');
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
-  const mountedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
@@ -39,8 +38,6 @@ export const useAreaCalculation = () => {
   }, [selectedUnit]);
 
   const requestLocation = useCallback(async () => {
-    if (!mountedRef.current) return null;
-
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
