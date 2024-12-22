@@ -10,6 +10,7 @@ export const UNITS = {
 } as const;
 
 export const useAreaCalculation = () => {
+  // Initialize hooks at the top level
   const { toast } = useToast();
   const [coordinates, setCoordinates] = useState<[number, number][]>([]);
   const [selectedUnit, setSelectedUnit] = useState<AreaUnit>("sqMeters");
@@ -48,7 +49,7 @@ export const useAreaCalculation = () => {
       });
       return null;
     }
-  }, [toast]);
+  }, [toast]); // Add toast to dependencies array
 
   return {
     coordinates,
