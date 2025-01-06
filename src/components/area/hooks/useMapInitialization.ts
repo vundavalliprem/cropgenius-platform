@@ -20,28 +20,26 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         zoom: 15,
       });
 
-      const onLoad = () => {
+      map.once('load', () => {
         if (!isMounted.current) return;
-        
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
         mapRef.current = map;
         setIsReady(true);
-      };
-
-      map.once('load', onLoad);
+      });
 
       return () => {
         isMounted.current = false;
-        if (map) {
-          map.remove();
+        if (mapRef.current) {
+          mapRef.current.remove();
           mapRef.current = null;
         }
+        setIsReady(false);
       };
 
     } catch (err) {
+      console.error('Error initializing map:', err);
       if (isMounted.current) {
         setError('Failed to initialize map. Please try again later.');
-        console.error('Error initializing map:', err);
       }
     }
   }, [container]);
