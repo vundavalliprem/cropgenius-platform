@@ -11,7 +11,7 @@ export const UNITS = {
 
 export const useAreaCalculation = () => {
   const { toast } = useToast();
-  const [selectedUnit] = useState<AreaUnit>("sqMeters");
+  const [selectedUnit, setSelectedUnitState] = useState<AreaUnit>("sqMeters");
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
 
   const requestLocation = useCallback(async () => {
@@ -37,8 +37,10 @@ export const useAreaCalculation = () => {
   const setSelectedUnit = useCallback((unit: AreaUnit) => {
     if (calculatedArea !== null) {
       const currentArea = calculatedArea / UNITS[selectedUnit].multiplier;
-      setCalculatedArea(Number((currentArea * UNITS[unit].multiplier).toFixed(2)));
+      const newArea = Number((currentArea * UNITS[unit].multiplier).toFixed(2));
+      setCalculatedArea(newArea);
     }
+    setSelectedUnitState(unit);
   }, [calculatedArea, selectedUnit]);
 
   return {

@@ -20,6 +20,7 @@ type DrawingMode = 'polygon' | 'rectangle' | 'circle';
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>('polygon');
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
@@ -36,17 +37,21 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    // Initialize MapboxDraw
-    drawRef.current = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      },
-      defaultMode: 'simple_select'
-    });
+    mapRef.current = map;
 
-    map.addControl(drawRef.current);
+    // Initialize MapboxDraw
+    if (!drawRef.current) {
+      drawRef.current = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
+
+      map.addControl(drawRef.current);
+    }
 
     const updateAreaCallback = () => {
       if (!drawRef.current) return;
@@ -69,13 +74,13 @@ export function AreaMap({ className }: AreaMapProps) {
 
     // Cleanup function
     return () => {
-      if (map && drawRef.current) {
-        map.off('draw.create', updateAreaCallback);
-        map.off('draw.delete', updateAreaCallback);
-        map.off('draw.update', updateAreaCallback);
-        map.removeControl(drawRef.current);
+      if (mapRef.current && drawRef.current) {
+        mapRef.current.off('draw.create', updateAreaCallback);
+        mapRef.current.off('draw.delete', updateAreaCallback);
+        mapRef.current.off('draw.update', updateAreaCallback);
+        mapRef.current.removeControl(drawRef.current);
+        drawRef.current = null;
       }
-      drawRef.current = null;
     };
   }, [isReady, selectedUnit]);
 
@@ -178,4 +183,4 @@ export function AreaMap({ className }: AreaMapProps) {
       </div>
     </Card>
   );
-};
+}
