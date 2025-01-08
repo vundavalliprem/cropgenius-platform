@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Square, Hexagon, Circle } from "lucide-react";
+import { MapPin, Pencil } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMapInitialization } from './hooks/useMapInitialization';
 import { useAreaCalculation, UNITS, AreaUnit } from './hooks/useAreaCalculation';
@@ -15,12 +15,9 @@ interface AreaMapProps {
   className?: string;
 }
 
-type DrawingMode = 'polygon' | 'rectangle' | 'circle';
-
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
-  const [drawingMode, setDrawingMode] = useState<DrawingMode>('polygon');
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
     selectedUnit,
@@ -88,9 +85,8 @@ export function AreaMap({ className }: AreaMapProps) {
     };
   }, [isReady, selectedUnit]);
 
-  const handleDrawingModeChange = (mode: DrawingMode) => {
+  const handleStartDrawing = () => {
     if (!drawRef.current || !isReady) return;
-    setDrawingMode(mode);
     drawRef.current.changeMode('draw_polygon');
   };
 
@@ -116,32 +112,14 @@ export function AreaMap({ className }: AreaMapProps) {
     <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4">
-          <div className="flex gap-2">
-            <Button
-              onClick={() => handleDrawingModeChange('polygon')}
-              variant={drawingMode === 'polygon' ? "default" : "outline"}
-              disabled={!isReady}
-            >
-              <Hexagon className="mr-2 h-4 w-4" />
-              Polygon
-            </Button>
-            <Button
-              onClick={() => handleDrawingModeChange('rectangle')}
-              variant={drawingMode === 'rectangle' ? "default" : "outline"}
-              disabled={!isReady}
-            >
-              <Square className="mr-2 h-4 w-4" />
-              Rectangle
-            </Button>
-            <Button
-              onClick={() => handleDrawingModeChange('circle')}
-              variant={drawingMode === 'circle' ? "default" : "outline"}
-              disabled={!isReady}
-            >
-              <Circle className="mr-2 h-4 w-4" />
-              Circle
-            </Button>
-          </div>
+          <Button
+            onClick={handleStartDrawing}
+            variant="default"
+            disabled={!isReady}
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Start Drawing
+          </Button>
           <Button 
             variant="outline" 
             onClick={handleLocationRequest}
