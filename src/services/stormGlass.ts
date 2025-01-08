@@ -21,22 +21,39 @@ export const useWeatherData = ({ lat, lng, params = ['airTemperature', 'precipit
   return useQuery({
     queryKey: ['weather', lat, lng],
     queryFn: async () => {
-      const response = await fetch(
-        `${STORMGLASS_API_URL}/weather/point?lat=${lat}&lng=${lng}&params=${params.join(',')}`,
-        {
-          headers: {
-            'Authorization': localStorage.getItem('STORMGLASS_API_KEY') || '',
-          },
+      try {
+        const apiKey = localStorage.getItem('STORMGLASS_API_KEY');
+        if (!apiKey) {
+          throw new Error('No API key provided');
         }
-      );
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch weather data');
+        const response = await fetch(
+          `${STORMGLASS_API_URL}/weather/point?lat=${lat}&lng=${lng}&params=${params.join(',')}`,
+          {
+            headers: {
+              'Authorization': apiKey,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 402) {
+            throw new Error('API quota exceeded. Please try again later or upgrade your plan.');
+          }
+          throw new Error(errorData.errors?.key || 'Failed to fetch weather data');
+        }
+
+        const data = await response.json();
+        return data.hours[0] as WeatherPoint;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(error.message);
+        }
+        throw new Error('An unexpected error occurred');
       }
-
-      const data = await response.json();
-      return data.hours[0] as WeatherPoint;
     },
     enabled: !!localStorage.getItem('STORMGLASS_API_KEY'),
+    retry: false,
   });
 };

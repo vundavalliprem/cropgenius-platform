@@ -5,8 +5,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const loadHandlerRef = useRef<(() => void) | null>(null);
-  const errorHandlerRef = useRef<((e: ErrorEvent) => void) | null>(null);
 
   useEffect(() => {
     if (!container.current) {
@@ -14,43 +12,40 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       return;
     }
 
+    let mapInstance: mapboxgl.Map | null = null;
+
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
       
-      const mapInstance = new mapboxgl.Map({
+      mapInstance = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      loadHandlerRef.current = () => {
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapRef.current = mapInstance;
-        setIsReady(true);
+      const handleLoad = () => {
+        if (mapInstance) {
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapRef.current = mapInstance;
+          setIsReady(true);
+        }
       };
 
-      errorHandlerRef.current = (e: ErrorEvent) => {
+      const handleError = (e: ErrorEvent) => {
         console.error('Map error:', e);
         setError('Failed to initialize map. Please try again later.');
       };
 
-      if (loadHandlerRef.current) {
-        mapInstance.once('load', loadHandlerRef.current);
-      }
-      
-      if (errorHandlerRef.current) {
-        mapInstance.on('error', errorHandlerRef.current);
-      }
+      mapInstance.once('load', handleLoad);
+      mapInstance.on('error', handleError);
 
       return () => {
-        if (loadHandlerRef.current) {
-          mapInstance.off('load', loadHandlerRef.current);
+        if (mapInstance) {
+          mapInstance.off('load', handleLoad);
+          mapInstance.off('error', handleError);
+          mapInstance.remove();
         }
-        if (errorHandlerRef.current) {
-          mapInstance.off('error', errorHandlerRef.current);
-        }
-        mapInstance.remove();
         mapRef.current = null;
         setIsReady(false);
       };
