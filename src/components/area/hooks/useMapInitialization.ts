@@ -7,7 +7,18 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
-    if (!container.current) return;
+    const cleanupMap = () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      setIsReady(false);
+      setError(null);
+    };
+
+    if (!container.current) {
+      return cleanupMap;
+    }
 
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
@@ -25,18 +36,11 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         setIsReady(true);
       });
 
-      return () => {
-        if (mapRef.current) {
-          mapRef.current.remove();
-          mapRef.current = null;
-        }
-        setIsReady(false);
-        setError(null);
-      };
-
+      return cleanupMap;
     } catch (err) {
       console.error('Error initializing map:', err);
       setError('Failed to initialize map. Please try again later.');
+      return cleanupMap;
     }
   }, [container]);
 
