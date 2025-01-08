@@ -30,7 +30,6 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  // Initialize draw control
   useEffect(() => {
     if (!isReady || !getMap()) return;
 
@@ -38,9 +37,10 @@ export function AreaMap({ className }: AreaMapProps) {
     if (!map) return;
 
     const updateAreaCallback = () => {
-      if (!drawRef.current) return;
+      const draw = drawRef.current;
+      if (!draw) return;
       
-      const data = drawRef.current.getAll();
+      const data = draw.getAll();
       if (!data?.features.length) {
         setCalculatedArea(null);
         return;
@@ -51,7 +51,6 @@ export function AreaMap({ className }: AreaMapProps) {
       setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    // Only initialize if not already initialized
     if (!drawRef.current) {
       const draw = new MapboxDraw({
         displayControlsDefault: false,
@@ -62,32 +61,28 @@ export function AreaMap({ className }: AreaMapProps) {
         defaultMode: 'simple_select'
       });
 
-      drawRef.current = draw;
       map.addControl(draw);
+      drawRef.current = draw;
 
-      // Add event listeners
       map.on('draw.create', updateAreaCallback);
       map.on('draw.delete', updateAreaCallback);
       map.on('draw.update', updateAreaCallback);
     }
 
-    // Cleanup function
     return () => {
-      const currentMap = getMap();
-      if (!currentMap || !drawRef.current) return;
+      if (!map || !drawRef.current) return;
 
-      // Remove event listeners
-      currentMap.off('draw.create', updateAreaCallback);
-      currentMap.off('draw.delete', updateAreaCallback);
-      currentMap.off('draw.update', updateAreaCallback);
+      map.off('draw.create', updateAreaCallback);
+      map.off('draw.delete', updateAreaCallback);
+      map.off('draw.update', updateAreaCallback);
 
-      // Remove control and clear ref
       try {
-        currentMap.removeControl(drawRef.current);
+        const currentDraw = drawRef.current;
+        drawRef.current = null;
+        map.removeControl(currentDraw);
       } catch (error) {
         console.error('Error removing draw control:', error);
       }
-      drawRef.current = null;
     };
   }, [isReady, selectedUnit]);
 
