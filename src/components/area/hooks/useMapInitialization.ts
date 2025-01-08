@@ -8,42 +8,37 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const isMounted = useRef(true);
 
   useEffect(() => {
-    // Set up mounted ref
+    // Initialize mounted ref
     isMounted.current = true;
 
-    // Define cleanup function
-    const cleanup = () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-      if (isMounted.current) {
-        setIsReady(false);
-        setError(null);
-      }
-    };
-
-    // Initialize map
+    // Initialize map only if container exists
     const initializeMap = () => {
       if (!container.current) return;
 
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
         
-        const map = new mapboxgl.Map({
+        const mapInstance = new mapboxgl.Map({
           container: container.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
           zoom: 15,
         });
 
-        map.once('load', () => {
+        mapInstance.on('load', () => {
           if (!isMounted.current) return;
           
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          mapRef.current = map;
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapRef.current = mapInstance;
           setIsReady(true);
         });
+
+        mapInstance.on('error', (e) => {
+          if (!isMounted.current) return;
+          console.error('Map error:', e);
+          setError('Failed to initialize map. Please try again later.');
+        });
+
       } catch (err) {
         console.error('Error initializing map:', err);
         if (isMounted.current) {
@@ -55,12 +50,15 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     // Initialize the map
     initializeMap();
 
-    // Cleanup on unmount
+    // Cleanup function
     return () => {
       isMounted.current = false;
-      cleanup();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
-  }, [container]);
+  }, [container]); // Only re-run if container changes
 
   const getMap = () => mapRef.current;
 
