@@ -20,7 +20,6 @@ type DrawingMode = 'polygon' | 'rectangle' | 'circle';
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>('polygon');
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
@@ -37,9 +36,7 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    mapRef.current = map;
-
-    // Initialize MapboxDraw
+    // Initialize MapboxDraw only if it hasn't been initialized
     if (!drawRef.current) {
       drawRef.current = new MapboxDraw({
         displayControlsDefault: false,
@@ -74,11 +71,17 @@ export function AreaMap({ className }: AreaMapProps) {
 
     // Cleanup function
     return () => {
-      if (mapRef.current && drawRef.current) {
-        mapRef.current.off('draw.create', updateAreaCallback);
-        mapRef.current.off('draw.delete', updateAreaCallback);
-        mapRef.current.off('draw.update', updateAreaCallback);
-        mapRef.current.removeControl(drawRef.current);
+      if (map && drawRef.current) {
+        map.off('draw.create', updateAreaCallback);
+        map.off('draw.delete', updateAreaCallback);
+        map.off('draw.update', updateAreaCallback);
+        
+        // Remove the draw control before removing event listeners
+        try {
+          map.removeControl(drawRef.current);
+        } catch (error) {
+          console.error('Error removing draw control:', error);
+        }
         drawRef.current = null;
       }
     };

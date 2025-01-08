@@ -42,10 +42,16 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
 
       return () => {
         if (map) {
+          // Remove event listeners first
           map.off('load', onLoad);
           map.off('error', onError);
+          
+          // Then remove the map
           map.remove();
+          map = null;
         }
+        
+        // Clear the ref last
         if (mapRef.current) {
           mapRef.current = null;
         }
