@@ -12,10 +12,12 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       return;
     }
 
+    let map: mapboxgl.Map | null = null;
+
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
       
-      const map = new mapboxgl.Map({
+      map = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
@@ -23,9 +25,11 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       });
 
       const onLoad = () => {
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapRef.current = map;
-        setIsReady(true);
+        if (map) {
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapRef.current = map;
+          setIsReady(true);
+        }
       };
 
       const onError = (e: ErrorEvent) => {
@@ -37,10 +41,12 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       map.on('error', onError);
 
       return () => {
-        map.off('load', onLoad);
-        map.off('error', onError);
+        if (map) {
+          map.off('load', onLoad);
+          map.off('error', onError);
+          map.remove();
+        }
         if (mapRef.current) {
-          mapRef.current.remove();
           mapRef.current = null;
         }
         setIsReady(false);
