@@ -5,8 +5,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const handleLoadRef = useRef<(() => void) | null>(null);
-  const handleErrorRef = useRef<((e: ErrorEvent) => void) | null>(null);
 
   useEffect(() => {
     if (!container.current) {
@@ -24,29 +22,27 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         zoom: 15,
       });
 
-      handleLoadRef.current = () => {
+      const onLoad = () => {
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
         mapRef.current = map;
         setIsReady(true);
       };
 
-      handleErrorRef.current = (e: ErrorEvent) => {
+      const onError = (e: ErrorEvent) => {
         console.error('Map error:', e);
         setError('Failed to initialize map. Please try again later.');
       };
 
-      map.once('load', handleLoadRef.current);
-      map.on('error', handleErrorRef.current);
+      map.once('load', onLoad);
+      map.on('error', onError);
 
       return () => {
-        if (handleLoadRef.current) {
-          map.off('load', handleLoadRef.current);
+        map.off('load', onLoad);
+        map.off('error', onError);
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
         }
-        if (handleErrorRef.current) {
-          map.off('error', handleErrorRef.current);
-        }
-        map.remove();
-        mapRef.current = null;
         setIsReady(false);
       };
     } catch (err) {

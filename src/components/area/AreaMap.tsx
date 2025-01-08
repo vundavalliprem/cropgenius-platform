@@ -56,7 +56,11 @@ export function AreaMap({ className }: AreaMapProps) {
 
       return () => {
         if (map && drawRef.current) {
+          map.off('draw.create', updateArea);
+          map.off('draw.delete', updateArea);
+          map.off('draw.update', updateArea);
           map.removeControl(drawRef.current);
+          drawRef.current = null;
         }
       };
     }
@@ -80,7 +84,6 @@ export function AreaMap({ className }: AreaMapProps) {
     if (!drawRef.current || !isReady) return;
     
     setDrawingMode(mode);
-    // For rectangle and circle, we still use polygon mode but will handle the shape in the UI
     drawRef.current.changeMode('draw_polygon');
   };
 
@@ -177,4 +180,4 @@ export function AreaMap({ className }: AreaMapProps) {
       </div>
     </Card>
   );
-}
+};
