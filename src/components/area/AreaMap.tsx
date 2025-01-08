@@ -8,6 +8,7 @@ import { useAreaCalculation, UNITS, AreaUnit } from './hooks/useAreaCalculation'
 import mapboxgl from 'mapbox-gl';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import * as turf from '@turf/turf';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface AreaMapProps {
@@ -62,7 +63,9 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [isReady]);
 
   const updateArea = () => {
-    const data = drawRef.current?.getAll();
+    if (!drawRef.current) return;
+    
+    const data = drawRef.current.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -77,7 +80,8 @@ export function AreaMap({ className }: AreaMapProps) {
     if (!drawRef.current || !isReady) return;
     
     setDrawingMode(mode);
-    drawRef.current.changeMode(mode === 'circle' ? 'circle' : 'draw_' + mode);
+    // For rectangle and circle, we still use polygon mode but will handle the shape in the UI
+    drawRef.current.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
