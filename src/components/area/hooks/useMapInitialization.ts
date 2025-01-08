@@ -9,7 +9,6 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
 
   useEffect(() => {
     isMounted.current = true;
-    let mapInstance: mapboxgl.Map | null = null;
 
     const initializeMap = async () => {
       if (!container.current) {
@@ -22,32 +21,34 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
         
-        mapInstance = new mapboxgl.Map({
+        const map = new mapboxgl.Map({
           container: container.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
           zoom: 15,
         });
 
-        mapInstance.on('load', () => {
-          if (!isMounted.current) return;
+        map.on('load', () => {
+          if (!isMounted.current) {
+            map.remove();
+            return;
+          }
           
-          mapInstance?.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          mapRef.current = mapInstance;
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapRef.current = map;
           setIsReady(true);
         });
 
-        mapInstance.on('error', (e) => {
+        map.on('error', (e) => {
           if (!isMounted.current) return;
           console.error('Map error:', e);
           setError('Failed to initialize map. Please try again later.');
         });
 
       } catch (err) {
+        if (!isMounted.current) return;
         console.error('Error initializing map:', err);
-        if (isMounted.current) {
-          setError('Failed to initialize map. Please try again later.');
-        }
+        setError('Failed to initialize map. Please try again later.');
       }
     };
 
@@ -55,10 +56,10 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
 
     return () => {
       isMounted.current = false;
-      if (mapInstance) {
-        mapInstance.remove();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
       }
-      mapRef.current = null;
     };
   }, [container]);
 
