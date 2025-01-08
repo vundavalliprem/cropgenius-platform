@@ -17,6 +17,7 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
     selectedUnit,
@@ -42,12 +43,17 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
+    // Store draw instance in ref
+    drawRef.current = draw;
+
     // Add draw control to map
     map.addControl(draw);
 
     // Define update area callback
     const updateAreaCallback = () => {
-      const data = draw.getAll();
+      if (!drawRef.current) return;
+      
+      const data = drawRef.current.getAll();
       if (!data?.features.length) {
         setCalculatedArea(null);
         return;
@@ -73,43 +79,28 @@ export function AreaMap({ className }: AreaMapProps) {
       map.off('draw.update', updateAreaCallback);
 
       // Then remove the draw control
-      try {
-        map.removeControl(draw);
-      } catch (error) {
-        console.error('Error removing draw control:', error);
+      if (drawRef.current) {
+        try {
+          map.removeControl(drawRef.current);
+        } catch (error) {
+          console.error('Error removing draw control:', error);
+        }
       }
+      
+      // Clear the ref last
+      drawRef.current = null;
     };
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    const map = getMap();
-    if (!map || !isReady) return;
-    
-    const controls = map.getStyle().layers;
-    const drawControl = controls?.find(control => control.id.startsWith('gl-draw'));
-    
-    if (drawControl) {
-      const draw = map._controls.find((control: any) => control instanceof MapboxDraw);
-      if (draw) {
-        draw.changeMode('draw_polygon');
-      }
-    }
+    if (!drawRef.current || !isReady) return;
+    drawRef.current.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    const map = getMap();
-    if (!map || !isReady) return;
-    
-    const controls = map.getStyle().layers;
-    const drawControl = controls?.find(control => control.id.startsWith('gl-draw'));
-    
-    if (drawControl) {
-      const draw = map._controls.find((control: any) => control instanceof MapboxDraw);
-      if (draw) {
-        draw.deleteAll();
-        setCalculatedArea(null);
-      }
-    }
+    if (!drawRef.current) return;
+    drawRef.current.deleteAll();
+    setCalculatedArea(null);
   };
 
   const handleLocationRequest = async () => {
