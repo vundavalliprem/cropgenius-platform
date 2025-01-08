@@ -31,58 +31,56 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   useEffect(() => {
-    if (isReady && getMap()) {
-      const map = getMap();
-      if (!map) return;
+    if (!isReady || !getMap()) return;
 
-      // Initialize MapboxDraw if not already initialized
-      if (!drawRef.current) {
-        drawRef.current = new MapboxDraw({
-          displayControlsDefault: false,
-          controls: {
-            polygon: true,
-            trash: true
-          },
-          defaultMode: 'simple_select'
-        });
+    const map = getMap();
+    if (!map) return;
 
-        map.addControl(drawRef.current);
+    // Initialize MapboxDraw
+    drawRef.current = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
+      },
+      defaultMode: 'simple_select'
+    });
 
-        // Calculate area when drawing is completed
-        map.on('draw.create', updateArea);
-        map.on('draw.delete', updateArea);
-        map.on('draw.update', updateArea);
+    map.addControl(drawRef.current);
+
+    const updateAreaCallback = () => {
+      if (!drawRef.current) return;
+      
+      const data = drawRef.current.getAll();
+      if (!data?.features.length) {
+        setCalculatedArea(null);
+        return;
       }
 
-      return () => {
-        if (map && drawRef.current) {
-          map.off('draw.create', updateArea);
-          map.off('draw.delete', updateArea);
-          map.off('draw.update', updateArea);
-          map.removeControl(drawRef.current);
-          drawRef.current = null;
-        }
-      };
-    }
-  }, [isReady]);
+      const area = turf.area(data);
+      const multiplier = UNITS[selectedUnit].multiplier;
+      setCalculatedArea(Number((area * multiplier).toFixed(2)));
+    };
 
-  const updateArea = () => {
-    if (!drawRef.current) return;
-    
-    const data = drawRef.current.getAll();
-    if (!data?.features.length) {
-      setCalculatedArea(null);
-      return;
-    }
+    // Add event listeners
+    map.on('draw.create', updateAreaCallback);
+    map.on('draw.delete', updateAreaCallback);
+    map.on('draw.update', updateAreaCallback);
 
-    const area = turf.area(data);
-    const multiplier = UNITS[selectedUnit].multiplier;
-    setCalculatedArea(Number((area * multiplier).toFixed(2)));
-  };
+    // Cleanup function
+    return () => {
+      if (map && drawRef.current) {
+        map.off('draw.create', updateAreaCallback);
+        map.off('draw.delete', updateAreaCallback);
+        map.off('draw.update', updateAreaCallback);
+        map.removeControl(drawRef.current);
+      }
+      drawRef.current = null;
+    };
+  }, [isReady, selectedUnit]);
 
   const handleDrawingModeChange = (mode: DrawingMode) => {
     if (!drawRef.current || !isReady) return;
-    
     setDrawingMode(mode);
     drawRef.current.changeMode('draw_polygon');
   };
@@ -99,7 +97,7 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (coords && map) {
       map.flyTo({
-        center: coords as [number, number],
+        center: coords,
         zoom: 15
       });
     }
