@@ -89,10 +89,13 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const controls = map.getControls();
-    const draw = controls.find((control: any) => control instanceof MapboxDraw);
-    if (draw) {
-      (draw as any).changeMode('draw_polygon');
+    // Find the draw control directly from the map's _controls array
+    const drawControl = (map as any)._controls.find(
+      (control: any) => control instanceof MapboxDraw
+    );
+    
+    if (drawControl) {
+      drawControl.changeMode('draw_polygon');
     }
   };
 
@@ -101,10 +104,13 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const controls = map.getControls();
-    const draw = controls.find((control: any) => control instanceof MapboxDraw);
-    if (draw) {
-      (draw as any).deleteAll();
+    // Find the draw control directly from the map's _controls array
+    const drawControl = (map as any)._controls.find(
+      (control: any) => control instanceof MapboxDraw
+    );
+    
+    if (drawControl) {
+      drawControl.deleteAll();
       setCalculatedArea(null);
     }
   };
