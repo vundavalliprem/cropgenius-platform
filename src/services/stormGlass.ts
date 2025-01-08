@@ -24,7 +24,7 @@ export const useWeatherData = ({ lat, lng, params = ['airTemperature', 'precipit
       try {
         const apiKey = localStorage.getItem('STORMGLASS_API_KEY');
         if (!apiKey) {
-          throw new Error('No API key provided');
+          throw new Error('Please enter your Storm Glass API key');
         }
 
         const response = await fetch(
@@ -39,7 +39,7 @@ export const useWeatherData = ({ lat, lng, params = ['airTemperature', 'precipit
         if (!response.ok) {
           const errorData = await response.json();
           if (response.status === 402) {
-            throw new Error('API quota exceeded. Please try again later or upgrade your plan.');
+            throw new Error('API quota exceeded. Please try again tomorrow or upgrade your plan.');
           }
           throw new Error(errorData.errors?.key || 'Failed to fetch weather data');
         }
@@ -47,13 +47,11 @@ export const useWeatherData = ({ lat, lng, params = ['airTemperature', 'precipit
         const data = await response.json();
         return data.hours[0] as WeatherPoint;
       } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(error.message);
-        }
-        throw new Error('An unexpected error occurred');
+        throw error instanceof Error ? error : new Error('An unexpected error occurred');
       }
     },
     enabled: !!localStorage.getItem('STORMGLASS_API_KEY'),
     retry: false,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };
