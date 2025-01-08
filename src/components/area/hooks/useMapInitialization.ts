@@ -7,37 +7,56 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
-    if (!container.current) {
-      setError('Map container not found');
-      return;
-    }
+    let mounted = true;
 
-    mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
-    
-    const mapInstance = new mapboxgl.Map({
-      container: container.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
-      zoom: 15,
-    });
+    const initializeMap = () => {
+      if (!container.current) {
+        setError('Map container not found');
+        return;
+      }
 
-    mapInstance.on('load', () => {
-      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      mapRef.current = mapInstance;
-      setIsReady(true);
-    });
+      try {
+        mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
+        
+        const map = new mapboxgl.Map({
+          container: container.current,
+          style: 'mapbox://styles/mapbox/satellite-v9',
+          center: [-95.7129, 37.0902],
+          zoom: 15,
+        });
 
-    mapInstance.on('error', (e) => {
-      console.error('Map error:', e);
-      setError('Failed to initialize map. Please try again later.');
-    });
+        map.on('load', () => {
+          if (!mounted) return;
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapRef.current = map;
+          setIsReady(true);
+        });
+
+        map.on('error', (e) => {
+          if (!mounted) return;
+          console.error('Map error:', e);
+          setError('Failed to initialize map. Please try again later.');
+        });
+
+        return map;
+      } catch (err) {
+        console.error('Map initialization error:', err);
+        if (mounted) {
+          setError('Failed to initialize map. Please try again later.');
+        }
+        return null;
+      }
+    };
+
+    const map = initializeMap();
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        setIsReady(false);
+      mounted = false;
+      if (map) {
+        map.remove();
       }
+      mapRef.current = null;
+      setIsReady(false);
     };
   }, [container]);
 
