@@ -36,20 +36,6 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    // Initialize MapboxDraw only if it hasn't been initialized
-    if (!drawRef.current) {
-      drawRef.current = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        },
-        defaultMode: 'simple_select'
-      });
-
-      map.addControl(drawRef.current);
-    }
-
     const updateAreaCallback = () => {
       if (!drawRef.current) return;
       
@@ -64,24 +50,44 @@ export function AreaMap({ className }: AreaMapProps) {
       setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    // Add event listeners
-    map.on('draw.create', updateAreaCallback);
-    map.on('draw.delete', updateAreaCallback);
-    map.on('draw.update', updateAreaCallback);
+    // Initialize MapboxDraw only if it hasn't been initialized
+    if (!drawRef.current) {
+      drawRef.current = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
+
+      map.addControl(drawRef.current);
+
+      // Add event listeners only after control is added
+      map.on('draw.create', updateAreaCallback);
+      map.on('draw.delete', updateAreaCallback);
+      map.on('draw.update', updateAreaCallback);
+    }
 
     // Cleanup function
     return () => {
-      if (map && drawRef.current) {
-        map.off('draw.create', updateAreaCallback);
-        map.off('draw.delete', updateAreaCallback);
-        map.off('draw.update', updateAreaCallback);
+      const currentMap = getMap();
+      if (currentMap && drawRef.current) {
+        // Remove event listeners first
+        currentMap.off('draw.create', updateAreaCallback);
+        currentMap.off('draw.delete', updateAreaCallback);
+        currentMap.off('draw.update', updateAreaCallback);
         
-        // Remove the draw control before removing event listeners
+        // Then try to remove the control
         try {
-          map.removeControl(drawRef.current);
+          if (drawRef.current) {
+            currentMap.removeControl(drawRef.current);
+          }
         } catch (error) {
           console.error('Error removing draw control:', error);
         }
+        
+        // Finally, clear the ref
         drawRef.current = null;
       }
     };
