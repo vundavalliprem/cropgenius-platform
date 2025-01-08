@@ -8,17 +8,21 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const isMounted = useRef(true);
 
   useEffect(() => {
-    // Initialize mounted ref
     isMounted.current = true;
+    let mapInstance: mapboxgl.Map | null = null;
 
-    // Initialize map only if container exists
-    const initializeMap = () => {
-      if (!container.current) return;
+    const initializeMap = async () => {
+      if (!container.current) {
+        if (isMounted.current) {
+          setError('Map container not found');
+        }
+        return;
+      }
 
       try {
         mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
         
-        const mapInstance = new mapboxgl.Map({
+        mapInstance = new mapboxgl.Map({
           container: container.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
@@ -28,7 +32,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         mapInstance.on('load', () => {
           if (!isMounted.current) return;
           
-          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapInstance?.addControl(new mapboxgl.NavigationControl(), 'top-right');
           mapRef.current = mapInstance;
           setIsReady(true);
         });
@@ -47,18 +51,16 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       }
     };
 
-    // Initialize the map
     initializeMap();
 
-    // Cleanup function
     return () => {
       isMounted.current = false;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
+      if (mapInstance) {
+        mapInstance.remove();
       }
+      mapRef.current = null;
     };
-  }, [container]); // Only re-run if container changes
+  }, [container]);
 
   const getMap = () => mapRef.current;
 
