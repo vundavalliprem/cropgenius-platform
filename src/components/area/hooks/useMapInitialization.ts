@@ -7,34 +7,43 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
-    if (!container.current) {
-      setError('Map container not found');
-      return;
-    }
+    let map: mapboxgl.Map | null = null;
 
     try {
+      if (!container.current) {
+        setError('Map container not found');
+        return;
+      }
+
       mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
       
-      const map = new mapboxgl.Map({
+      map = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      map.on('load', () => {
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapRef.current = map;
-        setIsReady(true);
-      });
+      const onLoad = () => {
+        if (map) {
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          mapRef.current = map;
+          setIsReady(true);
+        }
+      };
 
-      map.on('error', (e) => {
+      const onError = (e: any) => {
         console.error('Map error:', e);
         setError('Failed to initialize map. Please try again later.');
-      });
+      };
+
+      map.on('load', onLoad);
+      map.on('error', onError);
 
       return () => {
         if (map) {
+          map.off('load', onLoad);
+          map.off('error', onError);
           map.remove();
         }
         mapRef.current = null;
