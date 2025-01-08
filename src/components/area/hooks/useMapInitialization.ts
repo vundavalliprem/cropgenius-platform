@@ -7,52 +7,38 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
-    let map: mapboxgl.Map | null = null;
+    if (!container.current) {
+      setError('Map container not found');
+      return;
+    }
 
-    try {
-      if (!container.current) {
-        setError('Map container not found');
-        return;
-      }
+    mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
+    
+    const mapInstance = new mapboxgl.Map({
+      container: container.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
 
-      mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
-      
-      map = new mapboxgl.Map({
-        container: container.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    mapInstance.on('load', () => {
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      mapRef.current = mapInstance;
+      setIsReady(true);
+    });
 
-      const onLoad = () => {
-        if (map) {
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          mapRef.current = map;
-          setIsReady(true);
-        }
-      };
+    mapInstance.on('error', (e) => {
+      console.error('Map error:', e);
+      setError('Failed to initialize map. Please try again later.');
+    });
 
-      const onError = (e: any) => {
-        console.error('Map error:', e);
-        setError('Failed to initialize map. Please try again later.');
-      };
-
-      map.on('load', onLoad);
-      map.on('error', onError);
-
-      return () => {
-        if (map) {
-          map.off('load', onLoad);
-          map.off('error', onError);
-          map.remove();
-        }
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
         mapRef.current = null;
         setIsReady(false);
-      };
-    } catch (err) {
-      console.error('Error initializing map:', err);
-      setError('Failed to initialize map. Please try again later.');
-    }
+      }
+    };
   }, [container]);
 
   const getMap = () => mapRef.current;
