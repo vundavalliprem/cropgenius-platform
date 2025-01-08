@@ -64,9 +64,12 @@ export function AreaMap({ className }: AreaMapProps) {
     map.on('draw.delete', updateAreaCallback);
     map.on('draw.update', updateAreaCallback);
 
+    // Store draw instance in a local variable
+    const drawInstance = draw;
+
     // Cleanup function
     return () => {
-      if (!map) return;
+      if (!map || !drawInstance) return;
 
       // Remove event listeners first
       map.off('draw.create', updateAreaCallback);
@@ -74,11 +77,7 @@ export function AreaMap({ className }: AreaMapProps) {
       map.off('draw.update', updateAreaCallback);
 
       // Then remove the draw control
-      try {
-        map.removeControl(draw);
-      } catch (error) {
-        console.error('Error removing draw control:', error);
-      }
+      map.removeControl(drawInstance);
     };
   }, [isReady, selectedUnit]);
 
@@ -87,10 +86,10 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const controls = (map as any)._controls;
-    const draw = controls?.find((control: any) => control instanceof MapboxDraw);
-    if (draw) {
-      draw.changeMode('draw_polygon');
+    // Find the draw control
+    const drawControl = map._controls.find((control: any) => control instanceof MapboxDraw);
+    if (drawControl) {
+      drawControl.changeMode('draw_polygon');
     }
   };
 
@@ -99,10 +98,10 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const controls = (map as any)._controls;
-    const draw = controls?.find((control: any) => control instanceof MapboxDraw);
-    if (draw) {
-      draw.deleteAll();
+    // Find the draw control
+    const drawControl = map._controls.find((control: any) => control instanceof MapboxDraw);
+    if (drawControl) {
+      drawControl.deleteAll();
       setCalculatedArea(null);
     }
   };
