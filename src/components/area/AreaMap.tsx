@@ -82,8 +82,8 @@ export function AreaMap({ className }: AreaMapProps) {
       if (drawRef.current) {
         try {
           const currentDraw = drawRef.current;
-          drawRef.current = null;
           map.removeControl(currentDraw);
+          drawRef.current = null;
         } catch (error) {
           console.error('Error removing draw control:', error);
         }
