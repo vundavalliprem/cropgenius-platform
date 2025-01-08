@@ -31,13 +31,13 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   useEffect(() => {
-    if (!isReady || !getMap()) return;
+    if (!isReady) return;
 
     const map = getMap();
     if (!map) return;
 
+    let draw: MapboxDraw | null = null;
     const updateAreaCallback = () => {
-      const draw = drawRef.current;
       if (!draw) return;
       
       const data = draw.getAll();
@@ -52,7 +52,7 @@ export function AreaMap({ className }: AreaMapProps) {
     };
 
     if (!drawRef.current) {
-      const draw = new MapboxDraw({
+      draw = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
           polygon: true,
@@ -70,18 +70,20 @@ export function AreaMap({ className }: AreaMapProps) {
     }
 
     return () => {
-      if (!map || !drawRef.current) return;
+      if (!map) return;
 
       map.off('draw.create', updateAreaCallback);
       map.off('draw.delete', updateAreaCallback);
       map.off('draw.update', updateAreaCallback);
 
-      try {
-        const currentDraw = drawRef.current;
-        drawRef.current = null;
-        map.removeControl(currentDraw);
-      } catch (error) {
-        console.error('Error removing draw control:', error);
+      if (drawRef.current) {
+        try {
+          const currentDraw = drawRef.current;
+          drawRef.current = null;
+          map.removeControl(currentDraw);
+        } catch (error) {
+          console.error('Error removing draw control:', error);
+        }
       }
     };
   }, [isReady, selectedUnit]);
