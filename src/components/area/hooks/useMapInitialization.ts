@@ -5,6 +5,8 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const loadHandlerRef = useRef<(() => void) | null>(null);
+  const errorHandlerRef = useRef<((e: ErrorEvent) => void) | null>(null);
 
   useEffect(() => {
     if (!container.current) {
@@ -15,31 +17,40 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
       
-      const map = new mapboxgl.Map({
+      const mapInstance = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      const onLoad = () => {
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapRef.current = map;
+      loadHandlerRef.current = () => {
+        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapRef.current = mapInstance;
         setIsReady(true);
       };
 
-      const onError = (e: ErrorEvent) => {
+      errorHandlerRef.current = (e: ErrorEvent) => {
         console.error('Map error:', e);
         setError('Failed to initialize map. Please try again later.');
       };
 
-      map.once('load', onLoad);
-      map.on('error', onError);
+      if (loadHandlerRef.current) {
+        mapInstance.once('load', loadHandlerRef.current);
+      }
+      
+      if (errorHandlerRef.current) {
+        mapInstance.on('error', errorHandlerRef.current);
+      }
 
       return () => {
-        map.off('load', onLoad);
-        map.off('error', onError);
-        map.remove();
+        if (loadHandlerRef.current) {
+          mapInstance.off('load', loadHandlerRef.current);
+        }
+        if (errorHandlerRef.current) {
+          mapInstance.off('error', errorHandlerRef.current);
+        }
+        mapInstance.remove();
         mapRef.current = null;
         setIsReady(false);
       };
