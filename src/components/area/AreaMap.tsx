@@ -1,58 +1,89 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Square } from "lucide-react";
+import { MapPin, Square, Hexagon, Circle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMapInitialization } from './hooks/useMapInitialization';
 import { useAreaCalculation, UNITS, AreaUnit } from './hooks/useAreaCalculation';
+import mapboxgl from 'mapbox-gl';
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface AreaMapProps {
   className?: string;
 }
 
+type DrawingMode = 'polygon' | 'rectangle' | 'circle';
+
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const drawRef = useRef<MapboxDraw | null>(null);
+  const [drawingMode, setDrawingMode] = useState<DrawingMode>('polygon');
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
-    coordinates,
-    setCoordinates,
     selectedUnit,
     setSelectedUnit,
     calculatedArea,
     setCalculatedArea,
-    calculateArea,
     requestLocation,
   } = useAreaCalculation();
 
-  const handleDrawToggle = () => {
-    const map = getMap();
-    if (!map || !isReady) return;
+  useEffect(() => {
+    if (isReady && getMap()) {
+      const map = getMap();
+      if (!map) return;
 
-    if (isDrawing) {
-      setIsDrawing(false);
-      if (coordinates.length >= 3) {
-        const area = calculateArea(coordinates);
-        setCalculatedArea(area);
-      }
-    } else {
-      setIsDrawing(true);
-      setCoordinates([]);
-      setCalculatedArea(null);
+      // Initialize MapboxDraw if not already initialized
+      if (!drawRef.current) {
+        drawRef.current = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+            polygon: true,
+            trash: true
+          },
+          defaultMode: 'simple_select'
+        });
 
-      const markers = document.getElementsByClassName('mapboxgl-marker');
-      while (markers[0]) {
-        markers[0].remove();
+        map.addControl(drawRef.current);
+
+        // Calculate area when drawing is completed
+        map.on('draw.create', updateArea);
+        map.on('draw.delete', updateArea);
+        map.on('draw.update', updateArea);
       }
 
-      if (map.getLayer('area-polygon')) {
-        map.removeLayer('area-polygon');
-      }
-      if (map.getSource('area-source')) {
-        map.removeSource('area-source');
-      }
+      return () => {
+        if (map && drawRef.current) {
+          map.removeControl(drawRef.current);
+        }
+      };
     }
+  }, [isReady]);
+
+  const updateArea = () => {
+    const data = drawRef.current?.getAll();
+    if (!data?.features.length) {
+      setCalculatedArea(null);
+      return;
+    }
+
+    const area = turf.area(data);
+    const multiplier = UNITS[selectedUnit].multiplier;
+    setCalculatedArea(Number((area * multiplier).toFixed(2)));
+  };
+
+  const handleDrawingModeChange = (mode: DrawingMode) => {
+    if (!drawRef.current || !isReady) return;
+    
+    setDrawingMode(mode);
+    drawRef.current.changeMode(mode === 'circle' ? 'circle' : 'draw_' + mode);
+  };
+
+  const handleClear = () => {
+    if (!drawRef.current) return;
+    drawRef.current.deleteAll();
+    setCalculatedArea(null);
   };
 
   const handleLocationRequest = async () => {
@@ -71,14 +102,32 @@ export function AreaMap({ className }: AreaMapProps) {
     <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4">
-          <Button
-            onClick={handleDrawToggle}
-            variant={isDrawing ? "destructive" : "default"}
-            disabled={!isReady}
-          >
-            <Square className="mr-2 h-4 w-4" />
-            {isDrawing ? "Finish Drawing" : "Start Drawing"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleDrawingModeChange('polygon')}
+              variant={drawingMode === 'polygon' ? "default" : "outline"}
+              disabled={!isReady}
+            >
+              <Hexagon className="mr-2 h-4 w-4" />
+              Polygon
+            </Button>
+            <Button
+              onClick={() => handleDrawingModeChange('rectangle')}
+              variant={drawingMode === 'rectangle' ? "default" : "outline"}
+              disabled={!isReady}
+            >
+              <Square className="mr-2 h-4 w-4" />
+              Rectangle
+            </Button>
+            <Button
+              onClick={() => handleDrawingModeChange('circle')}
+              variant={drawingMode === 'circle' ? "default" : "outline"}
+              disabled={!isReady}
+            >
+              <Circle className="mr-2 h-4 w-4" />
+              Circle
+            </Button>
+          </div>
           <Button 
             variant="outline" 
             onClick={handleLocationRequest}
@@ -86,6 +135,13 @@ export function AreaMap({ className }: AreaMapProps) {
           >
             <MapPin className="mr-2 h-4 w-4" />
             Use GPS
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleClear}
+            disabled={!isReady}
+          >
+            Clear
           </Button>
           <Select value={selectedUnit} onValueChange={(value: AreaUnit) => setSelectedUnit(value)}>
             <SelectTrigger className="w-[180px]">
