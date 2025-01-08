@@ -13,17 +13,20 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
     try {
       mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
       
-      const map = new mapboxgl.Map({
+      const mapInstance = new mapboxgl.Map({
         container: container.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      map.once('load', () => {
-        if (!isMounted.current) return;
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapRef.current = map;
+      mapInstance.once('load', () => {
+        if (!isMounted.current) {
+          mapInstance.remove();
+          return;
+        }
+        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapRef.current = mapInstance;
         setIsReady(true);
       });
 
