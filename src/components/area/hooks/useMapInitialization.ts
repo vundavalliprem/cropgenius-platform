@@ -8,6 +8,8 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const isMounted = useRef(true);
 
   useEffect(() => {
+    isMounted.current = true;
+
     if (!container.current) return;
 
     try {
@@ -20,23 +22,36 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
         zoom: 15,
       });
 
-      mapInstance.once('load', () => {
+      // Handle map load event
+      const onMapLoad = () => {
         if (!isMounted.current) {
           mapInstance.remove();
           return;
         }
+        
         mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        mapRef.current = mapInstance;
-        setIsReady(true);
-      });
+        
+        if (isMounted.current) {
+          mapRef.current = mapInstance;
+          setIsReady(true);
+        }
+      };
 
+      mapInstance.once('load', onMapLoad);
+
+      // Cleanup function
       return () => {
         isMounted.current = false;
+        
         if (mapRef.current) {
           mapRef.current.remove();
           mapRef.current = null;
         }
-        setIsReady(false);
+        
+        if (isMounted.current) {
+          setIsReady(false);
+          setError(null);
+        }
       };
 
     } catch (err) {
