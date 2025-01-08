@@ -16,7 +16,7 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       if (!container.current) return;
 
       try {
-        mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHJwOWhtYmkwMjF1MmpwZnlicnV0ZWF2In0.JprOE7wastMHDgE9Jx7vfQ';
+        mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
         
         const mapInstance = new mapboxgl.Map({
           container: container.current,
