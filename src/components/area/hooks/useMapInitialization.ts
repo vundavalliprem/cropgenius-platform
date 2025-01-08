@@ -5,11 +5,8 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const isMounted = useRef(true);
 
   useEffect(() => {
-    isMounted.current = true;
-
     if (!container.current) {
       setError('Map container not found');
       return;
@@ -26,28 +23,22 @@ export const useMapInitialization = (container: React.RefObject<HTMLDivElement>)
       });
 
       map.on('load', () => {
-        if (!isMounted.current) {
-          map.remove();
-          return;
-        }
-        
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
         mapRef.current = map;
         setIsReady(true);
       });
 
       map.on('error', (e) => {
-        if (!isMounted.current) return;
         console.error('Map error:', e);
         setError('Failed to initialize map. Please try again later.');
       });
 
       return () => {
-        isMounted.current = false;
         if (map) {
           map.remove();
         }
         mapRef.current = null;
+        setIsReady(false);
       };
     } catch (err) {
       console.error('Error initializing map:', err);
