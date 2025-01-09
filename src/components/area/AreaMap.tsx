@@ -32,7 +32,6 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    // Create draw control
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -42,10 +41,8 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
-    // Add draw control to map
     map.addControl(draw);
 
-    // Define update area callback
     const updateAreaCallback = () => {
       const data = draw.getAll();
       if (!data?.features.length) {
@@ -58,22 +55,20 @@ export function AreaMap({ className }: AreaMapProps) {
       setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    // Add event listeners
     map.on('draw.create', updateAreaCallback);
     map.on('draw.delete', updateAreaCallback);
     map.on('draw.update', updateAreaCallback);
 
-    // Cleanup function
     return () => {
-      if (!map) return;
-
-      // Remove event listeners
-      map.off('draw.create', updateAreaCallback);
-      map.off('draw.delete', updateAreaCallback);
-      map.off('draw.update', updateAreaCallback);
-
-      // Remove draw control
-      map.removeControl(draw);
+      if (map) {
+        map.off('draw.create', updateAreaCallback);
+        map.off('draw.delete', updateAreaCallback);
+        map.off('draw.update', updateAreaCallback);
+        
+        if (draw) {
+          map.removeControl(draw);
+        }
+      }
     };
   }, [isReady, selectedUnit]);
 
@@ -83,8 +78,8 @@ export function AreaMap({ className }: AreaMapProps) {
     if (!map) return;
 
     const drawControl = map._controls.find(
-      (control: any): control is MapboxDraw => control instanceof MapboxDraw
-    );
+      (control: any) => control instanceof MapboxDraw
+    ) as MapboxDraw | undefined;
 
     if (drawControl) {
       drawControl.changeMode('draw_polygon');
@@ -97,8 +92,8 @@ export function AreaMap({ className }: AreaMapProps) {
     if (!map) return;
 
     const drawControl = map._controls.find(
-      (control: any): control is MapboxDraw => control instanceof MapboxDraw
-    );
+      (control: any) => control instanceof MapboxDraw
+    ) as MapboxDraw | undefined;
 
     if (drawControl) {
       drawControl.deleteAll();
