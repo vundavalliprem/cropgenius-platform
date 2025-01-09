@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Pencil } from "lucide-react";
@@ -17,8 +17,6 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const drawRef = useRef<MapboxDraw | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
   const { isReady, error: mapError } = useMapInitialization(mapContainer);
   const {
     selectedUnit,
@@ -28,34 +26,21 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  const updateArea = useCallback(() => {
-    const draw = drawRef.current;
-    if (!draw) return;
-    
-    const data = draw.getAll();
-    if (!data?.features.length) {
-      setCalculatedArea(null);
-      return;
-    }
-    
-    const area = turf.area(data);
-    const multiplier = UNITS[selectedUnit].multiplier;
-    setCalculatedArea(Number((area * multiplier).toFixed(2)));
-  }, [selectedUnit, setCalculatedArea]);
+  const [map, setMap] = useState<mapboxgl.Map | null>(null);
+  const [draw, setDraw] = useState<MapboxDraw | null>(null);
 
+  // Initialize map
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    const map = new mapboxgl.Map({
+    const newMap = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [-95.7129, 37.0902],
       zoom: 15,
     });
 
-    mapRef.current = map;
-
-    const draw = new MapboxDraw({
+    const newDraw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -64,52 +49,70 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
-    drawRef.current = draw;
-
-    map.once('load', () => {
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    newMap.once('load', () => {
+      newMap.addControl(newDraw);
+      newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
-    // Add event listeners after map loads
+    setMap(newMap);
+    setDraw(newDraw);
+
+    return () => {
+      if (newMap) {
+        if (newDraw) {
+          try {
+            newMap.removeControl(newDraw);
+          } catch (e) {
+            console.error('Error removing draw control:', e);
+          }
+        }
+        newMap.remove();
+      }
+    };
+  }, [isReady]);
+
+  // Handle area calculations
+  useEffect(() => {
+    if (!map || !draw) return;
+
+    const updateArea = () => {
+      const data = draw.getAll();
+      if (!data?.features.length) {
+        setCalculatedArea(null);
+        return;
+      }
+      const area = turf.area(data);
+      const multiplier = UNITS[selectedUnit].multiplier;
+      setCalculatedArea(Number((area * multiplier).toFixed(2)));
+    };
+
     map.on('draw.create', updateArea);
     map.on('draw.delete', updateArea);
     map.on('draw.update', updateArea);
 
     return () => {
-      // Remove event listeners
       map.off('draw.create', updateArea);
       map.off('draw.delete', updateArea);
       map.off('draw.update', updateArea);
-
-      // Remove controls and map
-      if (draw) {
-        map.removeControl(draw);
-      }
-      map.remove();
-      
-      // Clear refs
-      mapRef.current = null;
-      drawRef.current = null;
     };
-  }, [isReady, updateArea]);
+  }, [map, draw, selectedUnit, setCalculatedArea]);
 
   const handleStartDrawing = () => {
-    if (!drawRef.current) return;
-    drawRef.current.changeMode('draw_polygon');
+    if (!draw) return;
+    draw.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    if (!drawRef.current) return;
-    drawRef.current.deleteAll();
+    if (!draw) return;
+    draw.deleteAll();
     setCalculatedArea(null);
   };
 
   const handleLocationRequest = async () => {
-    if (!mapRef.current) return;
+    if (!map) return;
     const coords = await requestLocation();
     if (coords) {
-      mapRef.current.flyTo({
+      map.flyTo({
         center: coords,
         zoom: 15
       });
