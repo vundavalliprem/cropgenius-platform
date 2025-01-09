@@ -17,6 +17,7 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
     selectedUnit,
@@ -26,27 +27,30 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  // Initialize draw instance
-  const draw = new MapboxDraw({
-    displayControlsDefault: false,
-    controls: {
-      polygon: true,
-      trash: true
-    },
-    defaultMode: 'simple_select'
-  });
-
   useEffect(() => {
     if (!isReady) return;
 
     const map = getMap();
     if (!map) return;
 
+    // Initialize draw instance if it doesn't exist
+    if (!drawRef.current) {
+      drawRef.current = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
+    }
+
     // Add draw control to map
-    map.addControl(draw);
+    map.addControl(drawRef.current);
 
     const updateArea = () => {
-      const data = draw.getAll();
+      if (!drawRef.current) return;
+      const data = drawRef.current.getAll();
       if (!data?.features.length) {
         setCalculatedArea(null);
         return;
@@ -63,25 +67,31 @@ export function AreaMap({ className }: AreaMapProps) {
 
     // Cleanup function
     return () => {
-      if (map) {
+      if (map && drawRef.current) {
+        // Remove event listeners first
         map.off('draw.create', updateArea);
         map.off('draw.delete', updateArea);
         map.off('draw.update', updateArea);
-        if (map.hasControl(draw)) {
-          map.removeControl(draw);
+        
+        // Then remove the control if it exists on the map
+        if (map.hasControl(drawRef.current)) {
+          map.removeControl(drawRef.current);
         }
+        
+        // Finally clear the ref
+        drawRef.current = null;
       }
     };
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    if (!isReady) return;
-    draw.changeMode('draw_polygon');
+    if (!isReady || !drawRef.current) return;
+    drawRef.current.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    if (!isReady) return;
-    draw.deleteAll();
+    if (!isReady || !drawRef.current) return;
+    drawRef.current.deleteAll();
     setCalculatedArea(null);
   };
 
