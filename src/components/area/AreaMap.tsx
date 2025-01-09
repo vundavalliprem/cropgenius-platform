@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Pencil } from "lucide-react";
@@ -27,6 +27,18 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
+  const updateArea = useCallback(() => {
+    if (!drawRef.current) return;
+    const data = drawRef.current.getAll();
+    if (!data?.features.length) {
+      setCalculatedArea(null);
+      return;
+    }
+    const area = turf.area(data);
+    const multiplier = UNITS[selectedUnit].multiplier;
+    setCalculatedArea(Number((area * multiplier).toFixed(2)));
+  }, [selectedUnit, setCalculatedArea]);
+
   useEffect(() => {
     if (!isReady) return;
 
@@ -43,46 +55,34 @@ export function AreaMap({ className }: AreaMapProps) {
         },
         defaultMode: 'simple_select'
       });
+      
+      // Add draw control to map
+      map.addControl(drawRef.current);
+
+      // Add event listeners
+      map.on('draw.create', updateArea);
+      map.on('draw.delete', updateArea);
+      map.on('draw.update', updateArea);
     }
-
-    // Add draw control to map
-    map.addControl(drawRef.current);
-
-    const updateArea = () => {
-      if (!drawRef.current) return;
-      const data = drawRef.current.getAll();
-      if (!data?.features.length) {
-        setCalculatedArea(null);
-        return;
-      }
-      const area = turf.area(data);
-      const multiplier = UNITS[selectedUnit].multiplier;
-      setCalculatedArea(Number((area * multiplier).toFixed(2)));
-    };
-
-    // Add event listeners
-    map.on('draw.create', updateArea);
-    map.on('draw.delete', updateArea);
-    map.on('draw.update', updateArea);
 
     // Cleanup function
     return () => {
-      if (map && drawRef.current) {
+      const currentMap = getMap();
+      if (currentMap && drawRef.current) {
         // Remove event listeners first
-        map.off('draw.create', updateArea);
-        map.off('draw.delete', updateArea);
-        map.off('draw.update', updateArea);
+        currentMap.off('draw.create', updateArea);
+        currentMap.off('draw.delete', updateArea);
+        currentMap.off('draw.update', updateArea);
         
         // Then remove the control if it exists on the map
-        if (map.hasControl(drawRef.current)) {
-          map.removeControl(drawRef.current);
+        if (currentMap.hasControl(drawRef.current)) {
+          currentMap.removeControl(drawRef.current);
         }
-        
-        // Finally clear the ref
-        drawRef.current = null;
       }
+      // Clear the ref
+      drawRef.current = null;
     };
-  }, [isReady, selectedUnit]);
+  }, [isReady, updateArea]);
 
   const handleStartDrawing = () => {
     if (!isReady || !drawRef.current) return;
