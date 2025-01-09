@@ -13,6 +13,7 @@ export const useMapInitialization = () => {
     } catch (err) {
       console.error('Map initialization error:', err);
       setError('Failed to initialize map. Please try again later.');
+      setIsReady(false);
     }
   }, []);
 

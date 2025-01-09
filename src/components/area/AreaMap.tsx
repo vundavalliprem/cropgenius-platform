@@ -26,7 +26,6 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  // Initialize map
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
@@ -77,10 +76,6 @@ export function AreaMap({ className }: AreaMapProps) {
           map.off('draw.create', updateArea);
           map.off('draw.delete', updateArea);
           map.off('draw.update', updateArea);
-          
-          if (draw) {
-            map.removeControl(draw);
-          }
           map.remove();
         }
       };
@@ -90,18 +85,22 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    const map = mapContainer.current?.querySelector('.mapboxgl-map');
-    if (!map) return;
-    const drawControl = (map as any)._controls.find((c: any) => c instanceof MapboxDraw);
+    const mapElement = mapContainer.current?.querySelector('.mapboxgl-map');
+    if (!mapElement) return;
+    const controls = (mapElement as any)._controls;
+    if (!controls) return;
+    const drawControl = controls.find((c: any) => c instanceof MapboxDraw);
     if (drawControl) {
       drawControl.changeMode('draw_polygon');
     }
   };
 
   const handleClear = () => {
-    const map = mapContainer.current?.querySelector('.mapboxgl-map');
-    if (!map) return;
-    const drawControl = (map as any)._controls.find((c: any) => c instanceof MapboxDraw);
+    const mapElement = mapContainer.current?.querySelector('.mapboxgl-map');
+    if (!mapElement) return;
+    const controls = (mapElement as any)._controls;
+    if (!controls) return;
+    const drawControl = controls.find((c: any) => c instanceof MapboxDraw);
     if (drawControl) {
       drawControl.deleteAll();
       setCalculatedArea(null);
@@ -109,14 +108,17 @@ export function AreaMap({ className }: AreaMapProps) {
   };
 
   const handleLocationRequest = async () => {
-    const map = mapContainer.current?.querySelector('.mapboxgl-map');
-    if (!map) return;
+    const mapElement = mapContainer.current?.querySelector('.mapboxgl-map');
+    if (!mapElement) return;
     const coords = await requestLocation();
     if (coords) {
-      (map as any).flyTo({
-        center: coords,
-        zoom: 15
-      });
+      const map = (mapElement as any).map;
+      if (map) {
+        map.flyTo({
+          center: coords,
+          zoom: 15
+        });
+      }
     }
   };
 
