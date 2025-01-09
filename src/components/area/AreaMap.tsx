@@ -17,6 +17,8 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -25,12 +27,6 @@ export function AreaMap({ className }: AreaMapProps) {
     setCalculatedArea,
     requestLocation,
   } = useAreaCalculation();
-
-  // Store map state locally
-  const [mapInstance, setMapInstance] = useState<{ map: mapboxgl.Map | null; draw: MapboxDraw | null }>({
-    map: null,
-    draw: null
-  });
 
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
@@ -52,6 +48,9 @@ export function AreaMap({ className }: AreaMapProps) {
         defaultMode: 'simple_select'
       });
 
+      mapRef.current = map;
+      drawRef.current = draw;
+
       map.once('load', () => {
         map.addControl(draw);
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -72,11 +71,10 @@ export function AreaMap({ className }: AreaMapProps) {
       map.on('draw.delete', updateArea);
       map.on('draw.update', updateArea);
 
-      setMapInstance({ map, draw });
-
       return () => {
         map.remove();
-        setMapInstance({ map: null, draw: null });
+        mapRef.current = null;
+        drawRef.current = null;
       };
     } catch (error) {
       console.error('Map initialization error:', error);
@@ -84,24 +82,24 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    if (mapInstance.draw) {
-      mapInstance.draw.changeMode('draw_polygon');
+    if (drawRef.current) {
+      drawRef.current.changeMode('draw_polygon');
     }
   };
 
   const handleClear = () => {
-    if (mapInstance.draw) {
-      mapInstance.draw.deleteAll();
+    if (drawRef.current) {
+      drawRef.current.deleteAll();
       setCalculatedArea(null);
     }
   };
 
   const handleLocationRequest = async () => {
-    if (!mapInstance.map) return;
+    if (!mapRef.current) return;
     
     const coords = await requestLocation();
     if (coords) {
-      mapInstance.map.flyTo({
+      mapRef.current.flyTo({
         center: coords,
         zoom: 15
       });
