@@ -29,70 +29,69 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    let map: mapboxgl.Map | null = null;
-    let draw: MapboxDraw | null = null;
+    const mapInstance = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
 
-    try {
-      map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    const drawInstance = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
+      },
+      defaultMode: 'simple_select'
+    });
 
-      draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        },
-        defaultMode: 'simple_select'
-      });
+    mapInstance.once('load', () => {
+      mapInstance.addControl(drawInstance);
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    });
 
-      map.once('load', () => {
-        if (map && draw) {
-          map.addControl(draw);
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        }
-      });
+    const updateArea = () => {
+      const data = drawInstance.getAll();
+      if (!data?.features.length) {
+        setCalculatedArea(null);
+        return;
+      }
+      const area = turf.area(data);
+      const multiplier = UNITS[selectedUnit].multiplier;
+      setCalculatedArea(Number((area * multiplier).toFixed(2)));
+    };
 
-      const updateArea = () => {
-        if (!draw) return;
-        const data = draw.getAll();
-        if (!data?.features.length) {
-          setCalculatedArea(null);
-          return;
-        }
-        const area = turf.area(data);
-        const multiplier = UNITS[selectedUnit].multiplier;
-        setCalculatedArea(Number((area * multiplier).toFixed(2)));
-      };
+    mapInstance.on('draw.create', updateArea);
+    mapInstance.on('draw.delete', updateArea);
+    mapInstance.on('draw.update', updateArea);
 
-      map.on('draw.create', updateArea);
-      map.on('draw.delete', updateArea);
-      map.on('draw.update', updateArea);
+    // Store map instance in the DOM element for access in event handlers
+    (mapContainer.current as any)._mapInstance = mapInstance;
+    (mapContainer.current as any)._drawInstance = drawInstance;
 
-      return () => {
-        if (map) {
-          map.remove();
-        }
-      };
-    } catch (error) {
-      console.error('Map initialization error:', error);
-    }
+    return () => {
+      mapInstance.remove();
+      // Clean up our stored instances
+      if (mapContainer.current) {
+        delete (mapContainer.current as any)._mapInstance;
+        delete (mapContainer.current as any)._drawInstance;
+      }
+    };
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    const draw = mapContainer.current?.querySelector('.mapboxgl-ctrl-group')?.querySelector('.mapbox-gl-draw_polygon');
-    if (draw instanceof HTMLElement) {
-      draw.click();
+    if (!mapContainer.current) return;
+    const drawInstance = (mapContainer.current as any)._drawInstance;
+    if (drawInstance) {
+      drawInstance.changeMode('draw_polygon');
     }
   };
 
   const handleClear = () => {
-    const trash = mapContainer.current?.querySelector('.mapboxgl-ctrl-group')?.querySelector('.mapbox-gl-draw_trash');
-    if (trash instanceof HTMLElement) {
-      trash.click();
+    if (!mapContainer.current) return;
+    const drawInstance = (mapContainer.current as any)._drawInstance;
+    if (drawInstance) {
+      drawInstance.deleteAll();
       setCalculatedArea(null);
     }
   };
@@ -100,9 +99,9 @@ export function AreaMap({ className }: AreaMapProps) {
   const handleLocationRequest = async () => {
     const coords = await requestLocation();
     if (coords && mapContainer.current) {
-      const map = (mapContainer.current as any)._map;
-      if (map) {
-        map.flyTo({
+      const mapInstance = (mapContainer.current as any)._mapInstance;
+      if (mapInstance) {
+        mapInstance.flyTo({
           center: coords,
           zoom: 15
         });
