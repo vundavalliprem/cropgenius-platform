@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
 
-export const useMapInitialization = (container: React.RefObject<HTMLDivElement>) => {
+export const useMapInitialization = () => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
