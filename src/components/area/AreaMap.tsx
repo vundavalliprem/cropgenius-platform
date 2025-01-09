@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Pencil } from "lucide-react";
@@ -17,7 +17,6 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const drawRef = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
   const {
     selectedUnit,
@@ -27,17 +26,15 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  const updateAreaCallback = useCallback(() => {
-    if (!drawRef.current) return;
-    const data = drawRef.current.getAll();
-    if (!data?.features.length) {
-      setCalculatedArea(null);
-      return;
-    }
-    const area = turf.area(data);
-    const multiplier = UNITS[selectedUnit].multiplier;
-    setCalculatedArea(Number((area * multiplier).toFixed(2)));
-  }, [selectedUnit, setCalculatedArea]);
+  // Initialize draw instance
+  const draw = new MapboxDraw({
+    displayControlsDefault: false,
+    controls: {
+      polygon: true,
+      trash: true
+    },
+    defaultMode: 'simple_select'
+  });
 
   useEffect(() => {
     if (!isReady) return;
@@ -45,45 +42,46 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    // Initialize draw control if it doesn't exist
-    if (!drawRef.current) {
-      drawRef.current = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        },
-        defaultMode: 'simple_select'
-      });
-    }
-
     // Add draw control to map
-    map.addControl(drawRef.current);
+    map.addControl(draw);
+
+    const updateArea = () => {
+      const data = draw.getAll();
+      if (!data?.features.length) {
+        setCalculatedArea(null);
+        return;
+      }
+      const area = turf.area(data);
+      const multiplier = UNITS[selectedUnit].multiplier;
+      setCalculatedArea(Number((area * multiplier).toFixed(2)));
+    };
 
     // Add event listeners
-    map.on('draw.create', updateAreaCallback);
-    map.on('draw.delete', updateAreaCallback);
-    map.on('draw.update', updateAreaCallback);
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
 
     // Cleanup function
     return () => {
-      if (map && drawRef.current) {
-        map.off('draw.create', updateAreaCallback);
-        map.off('draw.delete', updateAreaCallback);
-        map.off('draw.update', updateAreaCallback);
-        map.removeControl(drawRef.current);
+      if (map) {
+        map.off('draw.create', updateArea);
+        map.off('draw.delete', updateArea);
+        map.off('draw.update', updateArea);
+        if (map.hasControl(draw)) {
+          map.removeControl(draw);
+        }
       }
     };
-  }, [isReady, updateAreaCallback]);
+  }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    if (!isReady || !drawRef.current) return;
-    drawRef.current.changeMode('draw_polygon');
+    if (!isReady) return;
+    draw.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    if (!isReady || !drawRef.current) return;
-    drawRef.current.deleteAll();
+    if (!isReady) return;
+    draw.deleteAll();
     setCalculatedArea(null);
   };
 
