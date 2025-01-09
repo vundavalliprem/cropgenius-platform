@@ -32,7 +32,7 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const draw = new MapboxDraw({
+    let draw: MapboxDraw | null = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -44,6 +44,7 @@ export function AreaMap({ className }: AreaMapProps) {
     map.addControl(draw);
 
     const updateAreaCallback = () => {
+      if (!draw) return;
       const data = draw.getAll();
       if (!data?.features.length) {
         setCalculatedArea(null);
@@ -67,6 +68,7 @@ export function AreaMap({ className }: AreaMapProps) {
         
         if (draw) {
           map.removeControl(draw);
+          draw = null;
         }
       }
     };
@@ -77,8 +79,9 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const drawControl = map._controls.find(
-      (control: any) => control instanceof MapboxDraw
+    const controls = map.getControls();
+    const drawControl = controls.find(
+      control => control instanceof MapboxDraw
     ) as MapboxDraw | undefined;
 
     if (drawControl) {
@@ -91,8 +94,9 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const drawControl = map._controls.find(
-      (control: any) => control instanceof MapboxDraw
+    const controls = map.getControls();
+    const drawControl = controls.find(
+      control => control instanceof MapboxDraw
     ) as MapboxDraw | undefined;
 
     if (drawControl) {
