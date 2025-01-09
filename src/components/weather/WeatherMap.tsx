@@ -15,7 +15,7 @@ interface WeatherMapProps {
 
 export function WeatherMap({ className }: WeatherMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
+  const { isReady, error: mapError } = useMapInitialization(mapContainer);
   const apiKeyRef = useRef(localStorage.getItem('STORMGLASS_API_KEY') || '');
   const { toast } = useToast();
   

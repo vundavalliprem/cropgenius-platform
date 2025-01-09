@@ -9,7 +9,7 @@ interface LogisticsMapProps {
 
 export function LogisticsMap({ className }: LogisticsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const { isReady, error, getMap } = useMapInitialization(mapContainer);
+  const { isReady, error } = useMapInitialization(mapContainer);
 
   return (
     <Card title="Logistics Tracking" description="Real-time shipment tracking and route visualization" className={className}>
