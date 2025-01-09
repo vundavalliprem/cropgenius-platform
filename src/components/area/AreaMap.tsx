@@ -29,12 +29,15 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   const updateArea = useCallback(() => {
-    if (!drawRef.current) return;
-    const data = drawRef.current.getAll();
+    const draw = drawRef.current;
+    if (!draw) return;
+    
+    const data = draw.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
     }
+    
     const area = turf.area(data);
     const multiplier = UNITS[selectedUnit].multiplier;
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
@@ -43,57 +46,51 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Initialize draw instance if it doesn't exist
-    if (!drawRef.current) {
-      drawRef.current = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        },
-        defaultMode: 'simple_select'
-      });
+    const map = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
 
-      const map = mapRef.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    mapRef.current = map;
 
-      map.on('load', () => {
-        if (drawRef.current && map) {
-          map.addControl(drawRef.current);
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          
-          // Add event listeners
-          map.on('draw.create', updateArea);
-          map.on('draw.delete', updateArea);
-          map.on('draw.update', updateArea);
-        }
-      });
-    }
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
+      },
+      defaultMode: 'simple_select'
+    });
 
-    // Cleanup function
+    drawRef.current = draw;
+
+    map.once('load', () => {
+      map.addControl(draw);
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    });
+
+    // Add event listeners after map loads
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
+
     return () => {
-      if (mapRef.current) {
-        const map = mapRef.current;
-        
-        // Remove event listeners
-        map.off('draw.create', updateArea);
-        map.off('draw.delete', updateArea);
-        map.off('draw.update', updateArea);
-        
-        // Remove controls
-        if (drawRef.current && map.hasControl(drawRef.current)) {
-          map.removeControl(drawRef.current);
-        }
-        
-        // Remove map
-        map.remove();
-        mapRef.current = null;
-        drawRef.current = null;
+      // Remove event listeners
+      map.off('draw.create', updateArea);
+      map.off('draw.delete', updateArea);
+      map.off('draw.update', updateArea);
+
+      // Remove controls and map
+      if (draw) {
+        map.removeControl(draw);
       }
+      map.remove();
+      
+      // Clear refs
+      mapRef.current = null;
+      drawRef.current = null;
     };
   }, [isReady, updateArea]);
 
