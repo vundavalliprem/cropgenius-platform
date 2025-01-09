@@ -29,14 +29,14 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    const mapInstance = new mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [-95.7129, 37.0902],
       zoom: 15,
     });
 
-    const drawInstance = new MapboxDraw({
+    const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -45,13 +45,13 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
-    mapInstance.once('load', () => {
-      mapInstance.addControl(drawInstance);
-      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.once('load', () => {
+      map.addControl(draw);
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
     const updateArea = () => {
-      const data = drawInstance.getAll();
+      const data = draw.getAll();
       if (!data?.features.length) {
         setCalculatedArea(null);
         return;
@@ -61,37 +61,32 @@ export function AreaMap({ className }: AreaMapProps) {
       setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    mapInstance.on('draw.create', updateArea);
-    mapInstance.on('draw.delete', updateArea);
-    mapInstance.on('draw.update', updateArea);
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
 
-    // Store map instance in the DOM element for access in event handlers
-    (mapContainer.current as any)._mapInstance = mapInstance;
-    (mapContainer.current as any)._drawInstance = drawInstance;
+    // Store references locally in the closure
+    const mapRef = map;
+    const drawRef = draw;
 
     return () => {
-      mapInstance.remove();
-      // Clean up our stored instances
-      if (mapContainer.current) {
-        delete (mapContainer.current as any)._mapInstance;
-        delete (mapContainer.current as any)._drawInstance;
-      }
+      mapRef.remove();
     };
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
     if (!mapContainer.current) return;
-    const drawInstance = (mapContainer.current as any)._drawInstance;
-    if (drawInstance) {
-      drawInstance.changeMode('draw_polygon');
+    const drawControl = mapContainer.current.querySelector('.mapbox-gl-draw_polygon');
+    if (drawControl instanceof HTMLElement) {
+      drawControl.click();
     }
   };
 
   const handleClear = () => {
     if (!mapContainer.current) return;
-    const drawInstance = (mapContainer.current as any)._drawInstance;
-    if (drawInstance) {
-      drawInstance.deleteAll();
+    const trashControl = mapContainer.current.querySelector('.mapbox-gl-draw_trash');
+    if (trashControl instanceof HTMLElement) {
+      trashControl.click();
       setCalculatedArea(null);
     }
   };
@@ -99,12 +94,15 @@ export function AreaMap({ className }: AreaMapProps) {
   const handleLocationRequest = async () => {
     const coords = await requestLocation();
     if (coords && mapContainer.current) {
-      const mapInstance = (mapContainer.current as any)._mapInstance;
-      if (mapInstance) {
-        mapInstance.flyTo({
-          center: coords,
-          zoom: 15
-        });
+      const map = mapContainer.current.querySelector('.mapboxgl-map');
+      if (map instanceof HTMLElement) {
+        const mapInstance = (map as any)._map;
+        if (mapInstance && mapInstance.flyTo) {
+          mapInstance.flyTo({
+            center: coords,
+            zoom: 15
+          });
+        }
       }
     }
   };
