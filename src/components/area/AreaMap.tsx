@@ -18,7 +18,8 @@ interface AreaMapProps {
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
-  const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const { isReady, error: mapError } = useMapInitialization(mapContainer);
   const {
     selectedUnit,
     setSelectedUnit,
@@ -40,10 +41,7 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [selectedUnit, setCalculatedArea]);
 
   useEffect(() => {
-    if (!isReady) return;
-
-    const map = getMap();
-    if (!map) return;
+    if (!isReady || !mapContainer.current) return;
 
     // Initialize draw instance if it doesn't exist
     if (!drawRef.current) {
@@ -55,52 +53,66 @@ export function AreaMap({ className }: AreaMapProps) {
         },
         defaultMode: 'simple_select'
       });
-      
-      // Add draw control to map
-      map.addControl(drawRef.current);
 
-      // Add event listeners
-      map.on('draw.create', updateArea);
-      map.on('draw.delete', updateArea);
-      map.on('draw.update', updateArea);
+      const map = mapRef.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
+
+      map.on('load', () => {
+        if (drawRef.current && map) {
+          map.addControl(drawRef.current);
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          
+          // Add event listeners
+          map.on('draw.create', updateArea);
+          map.on('draw.delete', updateArea);
+          map.on('draw.update', updateArea);
+        }
+      });
     }
 
     // Cleanup function
     return () => {
-      const currentMap = getMap();
-      if (currentMap && drawRef.current) {
-        // Remove event listeners first
-        currentMap.off('draw.create', updateArea);
-        currentMap.off('draw.delete', updateArea);
-        currentMap.off('draw.update', updateArea);
+      if (mapRef.current) {
+        const map = mapRef.current;
         
-        // Then remove the control if it exists on the map
-        if (currentMap.hasControl(drawRef.current)) {
-          currentMap.removeControl(drawRef.current);
+        // Remove event listeners
+        map.off('draw.create', updateArea);
+        map.off('draw.delete', updateArea);
+        map.off('draw.update', updateArea);
+        
+        // Remove controls
+        if (drawRef.current && map.hasControl(drawRef.current)) {
+          map.removeControl(drawRef.current);
         }
+        
+        // Remove map
+        map.remove();
+        mapRef.current = null;
+        drawRef.current = null;
       }
-      // Clear the ref
-      drawRef.current = null;
     };
   }, [isReady, updateArea]);
 
   const handleStartDrawing = () => {
-    if (!isReady || !drawRef.current) return;
+    if (!drawRef.current) return;
     drawRef.current.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    if (!isReady || !drawRef.current) return;
+    if (!drawRef.current) return;
     drawRef.current.deleteAll();
     setCalculatedArea(null);
   };
 
   const handleLocationRequest = async () => {
-    if (!isReady) return;
+    if (!mapRef.current) return;
     const coords = await requestLocation();
-    const map = getMap();
-    if (coords && map) {
-      map.flyTo({
+    if (coords) {
+      mapRef.current.flyTo({
         center: coords,
         zoom: 15
       });
