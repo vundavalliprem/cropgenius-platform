@@ -18,6 +18,7 @@ interface AreaMapProps {
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
+  const drawRef = useRef<MapboxDraw | null>(null);
   const {
     selectedUnit,
     setSelectedUnit,
@@ -32,7 +33,8 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    let draw: MapboxDraw | null = new MapboxDraw({
+    // Initialize draw control
+    const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -41,10 +43,11 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
+    // Store draw instance in ref
+    drawRef.current = draw;
     map.addControl(draw);
 
     const updateAreaCallback = () => {
-      if (!draw) return;
       const data = draw.getAll();
       if (!data?.features.length) {
         setCalculatedArea(null);
@@ -61,48 +64,25 @@ export function AreaMap({ className }: AreaMapProps) {
     map.on('draw.update', updateAreaCallback);
 
     return () => {
-      if (map) {
+      if (map && draw) {
         map.off('draw.create', updateAreaCallback);
         map.off('draw.delete', updateAreaCallback);
         map.off('draw.update', updateAreaCallback);
-        
-        if (draw) {
-          map.removeControl(draw);
-          draw = null;
-        }
+        map.removeControl(draw);
       }
+      drawRef.current = null;
     };
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    if (!isReady) return;
-    const map = getMap();
-    if (!map) return;
-
-    // Access _controls directly since it's the correct property name
-    const drawControl = (map as any)._controls.find(
-      control => control instanceof MapboxDraw
-    ) as MapboxDraw | undefined;
-
-    if (drawControl) {
-      drawControl.changeMode('draw_polygon');
-    }
+    if (!isReady || !drawRef.current) return;
+    drawRef.current.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    if (!isReady) return;
-    const map = getMap();
-    if (!map) return;
-
-    // Access _controls directly since it's the correct property name
-    const drawControl = (map as any)._controls.find(
-      control => control instanceof MapboxDraw
-    ) as MapboxDraw | undefined;
-
-    if (drawControl) {
-      drawControl.deleteAll();
-      setCalculatedArea(null);
-    }
+    if (!isReady || !drawRef.current) return;
+    drawRef.current.deleteAll();
+    setCalculatedArea(null);
   };
 
   const handleLocationRequest = async () => {
