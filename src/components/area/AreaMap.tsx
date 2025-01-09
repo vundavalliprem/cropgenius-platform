@@ -17,6 +17,8 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<mapboxgl.Map | null>(null);
+  const drawInstance = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -29,18 +31,15 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    let map: mapboxgl.Map | null = null;
-    let draw: MapboxDraw | null = null;
-
     try {
-      map = new mapboxgl.Map({
+      mapInstance.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      draw = new MapboxDraw({
+      drawInstance.current = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
           polygon: true,
@@ -50,8 +49,8 @@ export function AreaMap({ className }: AreaMapProps) {
       });
 
       const updateArea = () => {
-        if (!draw) return;
-        const data = draw.getAll();
+        if (!drawInstance.current) return;
+        const data = drawInstance.current.getAll();
         if (!data?.features.length) {
           setCalculatedArea(null);
           return;
@@ -61,22 +60,21 @@ export function AreaMap({ className }: AreaMapProps) {
         setCalculatedArea(Number((area * multiplier).toFixed(2)));
       };
 
-      map.once('load', () => {
-        if (!map || !draw) return;
-        map.addControl(draw);
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      mapInstance.current.once('load', () => {
+        if (!mapInstance.current || !drawInstance.current) return;
+        mapInstance.current.addControl(drawInstance.current);
+        mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
       });
 
-      map.on('draw.create', updateArea);
-      map.on('draw.delete', updateArea);
-      map.on('draw.update', updateArea);
+      mapInstance.current.on('draw.create', updateArea);
+      mapInstance.current.on('draw.delete', updateArea);
+      mapInstance.current.on('draw.update', updateArea);
 
       return () => {
-        if (map) {
-          map.off('draw.create', updateArea);
-          map.off('draw.delete', updateArea);
-          map.off('draw.update', updateArea);
-          map.remove();
+        if (mapInstance.current) {
+          mapInstance.current.remove();
+          mapInstance.current = null;
+          drawInstance.current = null;
         }
       };
     } catch (error) {
@@ -85,40 +83,24 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    const mapElement = mapContainer.current?.querySelector('.mapboxgl-map');
-    if (!mapElement) return;
-    const controls = (mapElement as any)._controls;
-    if (!controls) return;
-    const drawControl = controls.find((c: any) => c instanceof MapboxDraw);
-    if (drawControl) {
-      drawControl.changeMode('draw_polygon');
-    }
+    if (!drawInstance.current) return;
+    drawInstance.current.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    const mapElement = mapContainer.current?.querySelector('.mapboxgl-map');
-    if (!mapElement) return;
-    const controls = (mapElement as any)._controls;
-    if (!controls) return;
-    const drawControl = controls.find((c: any) => c instanceof MapboxDraw);
-    if (drawControl) {
-      drawControl.deleteAll();
-      setCalculatedArea(null);
-    }
+    if (!drawInstance.current) return;
+    drawInstance.current.deleteAll();
+    setCalculatedArea(null);
   };
 
   const handleLocationRequest = async () => {
-    const mapElement = mapContainer.current?.querySelector('.mapboxgl-map');
-    if (!mapElement) return;
+    if (!mapInstance.current) return;
     const coords = await requestLocation();
     if (coords) {
-      const map = (mapElement as any).map;
-      if (map) {
-        map.flyTo({
-          center: coords,
-          zoom: 15
-        });
-      }
+      mapInstance.current.flyTo({
+        center: coords,
+        zoom: 15
+      });
     }
   };
 
