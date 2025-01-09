@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useWeatherData } from '@/services/stormGlass';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import mapboxgl from 'mapbox-gl';
 
 interface WeatherMapProps {
   className?: string;
@@ -15,7 +16,7 @@ interface WeatherMapProps {
 
 export function WeatherMap({ className }: WeatherMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const { isReady, error: mapError } = useMapInitialization(mapContainer);
+  const { isReady, error: mapError } = useMapInitialization();
   const apiKeyRef = useRef(localStorage.getItem('STORMGLASS_API_KEY') || '');
   const { toast } = useToast();
   
@@ -23,6 +24,23 @@ export function WeatherMap({ className }: WeatherMapProps) {
     lat: 37.0902,
     lng: -95.7129,
   });
+
+  useEffect(() => {
+    if (!isReady || !mapContainer.current) return;
+
+    const map = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 4
+    });
+
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    return () => {
+      map.remove();
+    };
+  }, [isReady]);
 
   const handleSaveApiKey = () => {
     const newApiKey = apiKeyRef.current;
