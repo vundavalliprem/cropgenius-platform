@@ -33,70 +33,72 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    const newMap = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
-      zoom: 15,
-    });
+    try {
+      const newMap = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
 
-    const newDraw = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      },
-      defaultMode: 'simple_select'
-    });
+      const newDraw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
 
-    mapRef.current = newMap;
-    drawRef.current = newDraw;
+      const updateArea = () => {
+        const data = newDraw.getAll();
+        if (!data?.features.length) {
+          setCalculatedArea(null);
+          return;
+        }
+        const area = turf.area(data);
+        const multiplier = UNITS[selectedUnit].multiplier;
+        setCalculatedArea(Number((area * multiplier).toFixed(2)));
+      };
 
-    const updateArea = () => {
-      const data = newDraw.getAll();
-      if (!data?.features.length) {
-        setCalculatedArea(null);
-        return;
-      }
-      const area = turf.area(data);
-      const multiplier = UNITS[selectedUnit].multiplier;
-      setCalculatedArea(Number((area * multiplier).toFixed(2)));
-    };
+      newMap.once('load', () => {
+        newMap.addControl(newDraw);
+        newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      });
 
-    newMap.once('load', () => {
-      newMap.addControl(newDraw);
-      newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Store references
+      mapRef.current = newMap;
+      drawRef.current = newDraw;
 
-      // Add event listeners after controls are added
-      newMap.on('draw.create', updateArea);
-      newMap.on('draw.delete', updateArea);
-      newMap.on('draw.update', updateArea);
-    });
+      // Add event listeners
+      const boundUpdateArea = updateArea.bind(null);
+      newMap.on('draw.create', boundUpdateArea);
+      newMap.on('draw.delete', boundUpdateArea);
+      newMap.on('draw.update', boundUpdateArea);
 
-    return () => {
-      if (mapRef.current) {
-        // Remove event listeners first
-        mapRef.current.off('draw.create', updateArea);
-        mapRef.current.off('draw.delete', updateArea);
-        mapRef.current.off('draw.update', updateArea);
+      return () => {
+        // Remove event listeners
+        newMap.off('draw.create', boundUpdateArea);
+        newMap.off('draw.delete', boundUpdateArea);
+        newMap.off('draw.update', boundUpdateArea);
 
-        // Then remove controls
-        if (drawRef.current) {
-          try {
-            mapRef.current.removeControl(drawRef.current);
-          } catch (e) {
-            console.error('Error removing draw control:', e);
+        // Remove controls and map
+        try {
+          if (newDraw) {
+            newMap.removeControl(newDraw);
           }
+          newMap.remove();
+        } catch (e) {
+          console.error('Cleanup error:', e);
         }
 
-        // Finally remove the map
-        mapRef.current.remove();
-        
         // Clear refs
         mapRef.current = null;
         drawRef.current = null;
-      }
-    };
+      };
+    } catch (error) {
+      console.error('Map initialization error:', error);
+    }
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
