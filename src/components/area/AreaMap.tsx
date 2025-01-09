@@ -18,7 +18,6 @@ interface AreaMapProps {
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const { isReady, error: mapError, getMap } = useMapInitialization(mapContainer);
-  const drawRef = useRef<MapboxDraw | null>(null);
   const {
     selectedUnit,
     setSelectedUnit,
@@ -27,24 +26,23 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
+  // Create MapboxDraw instance once
+  const draw = new MapboxDraw({
+    displayControlsDefault: false,
+    controls: {
+      polygon: true,
+      trash: true
+    },
+    defaultMode: 'simple_select'
+  });
+
   useEffect(() => {
     if (!isReady) return;
 
     const map = getMap();
     if (!map) return;
 
-    // Initialize draw control
-    const draw = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      },
-      defaultMode: 'simple_select'
-    });
-
-    // Store draw instance in ref
-    drawRef.current = draw;
+    // Add draw control to map
     map.addControl(draw);
 
     const updateAreaCallback = () => {
@@ -64,24 +62,23 @@ export function AreaMap({ className }: AreaMapProps) {
     map.on('draw.update', updateAreaCallback);
 
     return () => {
-      if (map && draw) {
+      if (map) {
         map.off('draw.create', updateAreaCallback);
         map.off('draw.delete', updateAreaCallback);
         map.off('draw.update', updateAreaCallback);
         map.removeControl(draw);
       }
-      drawRef.current = null;
     };
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    if (!isReady || !drawRef.current) return;
-    drawRef.current.changeMode('draw_polygon');
+    if (!isReady) return;
+    draw.changeMode('draw_polygon');
   };
 
   const handleClear = () => {
-    if (!isReady || !drawRef.current) return;
-    drawRef.current.deleteAll();
+    if (!isReady) return;
+    draw.deleteAll();
     setCalculatedArea(null);
   };
 
