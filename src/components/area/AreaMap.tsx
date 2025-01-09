@@ -17,6 +17,8 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization(mapContainer);
   const {
     selectedUnit,
@@ -26,22 +28,19 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const drawRef = useRef<MapboxDraw | null>(null);
-
   // Initialize map
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
     try {
-      const newMap = new mapboxgl.Map({
+      const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      const newDraw = new MapboxDraw({
+      const draw = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
           polygon: true,
@@ -50,8 +49,13 @@ export function AreaMap({ className }: AreaMapProps) {
         defaultMode: 'simple_select'
       });
 
+      map.once('load', () => {
+        map.addControl(draw);
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      });
+
       const updateArea = () => {
-        const data = newDraw.getAll();
+        const data = draw.getAll();
         if (!data?.features.length) {
           setCalculatedArea(null);
           return;
@@ -61,38 +65,23 @@ export function AreaMap({ className }: AreaMapProps) {
         setCalculatedArea(Number((area * multiplier).toFixed(2)));
       };
 
-      newMap.once('load', () => {
-        newMap.addControl(newDraw);
-        newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      });
+      map.on('draw.create', updateArea);
+      map.on('draw.delete', updateArea);
+      map.on('draw.update', updateArea);
 
-      // Store references
-      mapRef.current = newMap;
-      drawRef.current = newDraw;
-
-      // Add event listeners
-      const boundUpdateArea = updateArea.bind(null);
-      newMap.on('draw.create', boundUpdateArea);
-      newMap.on('draw.delete', boundUpdateArea);
-      newMap.on('draw.update', boundUpdateArea);
+      mapRef.current = map;
+      drawRef.current = draw;
 
       return () => {
-        // Remove event listeners
-        newMap.off('draw.create', boundUpdateArea);
-        newMap.off('draw.delete', boundUpdateArea);
-        newMap.off('draw.update', boundUpdateArea);
-
-        // Remove controls and map
-        try {
-          if (newDraw) {
-            newMap.removeControl(newDraw);
-          }
-          newMap.remove();
-        } catch (e) {
-          console.error('Cleanup error:', e);
+        map.off('draw.create', updateArea);
+        map.off('draw.delete', updateArea);
+        map.off('draw.update', updateArea);
+        
+        if (draw) {
+          map.removeControl(draw);
         }
-
-        // Clear refs
+        map.remove();
+        
         mapRef.current = null;
         drawRef.current = null;
       };
