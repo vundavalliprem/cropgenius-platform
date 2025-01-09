@@ -17,8 +17,6 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const drawRef = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -31,15 +29,18 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
+    let map: mapboxgl.Map | null = null;
+    let draw: MapboxDraw | null = null;
+
     try {
-      const map = new mapboxgl.Map({
+      map = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
 
-      const draw = new MapboxDraw({
+      draw = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
           polygon: true,
@@ -48,15 +49,15 @@ export function AreaMap({ className }: AreaMapProps) {
         defaultMode: 'simple_select'
       });
 
-      mapRef.current = map;
-      drawRef.current = draw;
-
       map.once('load', () => {
-        map.addControl(draw);
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        if (map && draw) {
+          map.addControl(draw);
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        }
       });
 
       const updateArea = () => {
+        if (!draw) return;
         const data = draw.getAll();
         if (!data?.features.length) {
           setCalculatedArea(null);
@@ -71,10 +72,14 @@ export function AreaMap({ className }: AreaMapProps) {
       map.on('draw.delete', updateArea);
       map.on('draw.update', updateArea);
 
+      // Store references to map and draw for event handlers
+      const currentMap = map;
+      const currentDraw = draw;
+
       return () => {
-        map.remove();
-        mapRef.current = null;
-        drawRef.current = null;
+        if (currentMap) {
+          currentMap.remove();
+        }
       };
     } catch (error) {
       console.error('Map initialization error:', error);
@@ -82,27 +87,30 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    if (drawRef.current) {
-      drawRef.current.changeMode('draw_polygon');
+    const draw = mapContainer.current?.querySelector('.mapboxgl-ctrl-group')?.querySelector('.mapbox-gl-draw_polygon');
+    if (draw instanceof HTMLElement) {
+      draw.click();
     }
   };
 
   const handleClear = () => {
-    if (drawRef.current) {
-      drawRef.current.deleteAll();
+    const trash = mapContainer.current?.querySelector('.mapboxgl-ctrl-group')?.querySelector('.mapbox-gl-draw_trash');
+    if (trash instanceof HTMLElement) {
+      trash.click();
       setCalculatedArea(null);
     }
   };
 
   const handleLocationRequest = async () => {
-    if (!mapRef.current) return;
-    
     const coords = await requestLocation();
-    if (coords) {
-      mapRef.current.flyTo({
-        center: coords,
-        zoom: 15
-      });
+    if (coords && mapContainer.current) {
+      const map = (mapContainer.current as any)._map;
+      if (map) {
+        map.flyTo({
+          center: coords,
+          zoom: 15
+        });
+      }
     }
   };
 
