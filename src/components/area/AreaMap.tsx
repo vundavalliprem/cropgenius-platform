@@ -79,8 +79,8 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const controls = map.getControls();
-    const drawControl = controls.find(
+    // Access _controls directly since it's the correct property name
+    const drawControl = (map as any)._controls.find(
       control => control instanceof MapboxDraw
     ) as MapboxDraw | undefined;
 
@@ -94,8 +94,8 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = getMap();
     if (!map) return;
 
-    const controls = map.getControls();
-    const drawControl = controls.find(
+    // Access _controls directly since it's the correct property name
+    const drawControl = (map as any)._controls.find(
       control => control instanceof MapboxDraw
     ) as MapboxDraw | undefined;
 
