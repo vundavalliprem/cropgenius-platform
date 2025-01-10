@@ -67,6 +67,12 @@ export function AreaMap({ className }: AreaMapProps) {
   React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
+    // Cleanup any existing instances
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
     // Initialize map
     mapRef.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -88,23 +94,25 @@ export function AreaMap({ className }: AreaMapProps) {
     const map = mapRef.current;
     const draw = drawRef.current;
 
+    // Add controls after map loads
     map.once('load', () => {
       map.addControl(draw);
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
     // Add event listeners
-    map.on('draw.create', updateArea);
-    map.on('draw.delete', updateArea);
-    map.on('draw.update', updateArea);
+    const boundUpdateArea = updateArea;
+    map.on('draw.create', boundUpdateArea);
+    map.on('draw.delete', boundUpdateArea);
+    map.on('draw.update', boundUpdateArea);
 
     // Cleanup function
     return () => {
       if (mapRef.current) {
         const map = mapRef.current;
-        map.off('draw.create', updateArea);
-        map.off('draw.delete', updateArea);
-        map.off('draw.update', updateArea);
+        map.off('draw.create', boundUpdateArea);
+        map.off('draw.delete', boundUpdateArea);
+        map.off('draw.update', boundUpdateArea);
         
         if (drawRef.current) {
           map.removeControl(drawRef.current);

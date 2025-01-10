@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useMapInitialization } from '../area/hooks/useMapInitialization';
@@ -14,9 +14,9 @@ interface WeatherMapProps {
 }
 
 export function WeatherMap({ className }: WeatherMapProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number }>({
+  const mapContainer = React.useRef<HTMLDivElement>(null);
+  const mapRef = React.useRef<mapboxgl.Map | null>(null);
+  const [currentLocation, setCurrentLocation] = React.useState<{ lat: number; lng: number }>({
     lat: 37.0902,
     lng: -95.7129,
   });
@@ -28,15 +28,7 @@ export function WeatherMap({ className }: WeatherMapProps) {
     lng: currentLocation.lng,
   });
 
-  // Cleanup function to properly dispose of map resources
-  const cleanupMap = () => {
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
-  };
-
-  const handleLocationRequest = () => {
+  const handleLocationRequest = React.useCallback(() => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const newLocation = {
@@ -59,13 +51,16 @@ export function WeatherMap({ className }: WeatherMapProps) {
         });
       }
     );
-  };
+  }, [toast]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Clean up any existing instances
-    cleanupMap();
+    // Cleanup any existing instances
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
 
     // Initialize new map instance
     mapRef.current = new mapboxgl.Map({
@@ -75,17 +70,26 @@ export function WeatherMap({ className }: WeatherMapProps) {
       zoom: 4
     });
 
-    mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    const map = mapRef.current;
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     // Add click handler to update location
-    mapRef.current.on('click', (e) => {
+    const clickHandler = (e: mapboxgl.MapMouseEvent) => {
       const { lng, lat } = e.lngLat;
       setCurrentLocation({ lat, lng });
-    });
+    };
+    
+    map.on('click', clickHandler);
 
     // Return cleanup function
-    return cleanupMap;
-  }, [isReady]);
+    return () => {
+      if (mapRef.current) {
+        map.off('click', clickHandler);
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [isReady, currentLocation.lat, currentLocation.lng]);
 
   return (
     <Card 

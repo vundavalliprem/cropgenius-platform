@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useMapInitialization } from '../area/hooks/useMapInitialization';
@@ -9,23 +9,18 @@ interface LogisticsMapProps {
 }
 
 export function LogisticsMap({ className }: LogisticsMapProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapContainer = React.useRef<HTMLDivElement>(null);
+  const mapRef = React.useRef<mapboxgl.Map | null>(null);
   const { isReady, error } = useMapInitialization();
 
-  // Cleanup function to properly dispose of map resources
-  const cleanupMap = () => {
+  React.useEffect(() => {
+    if (!isReady || !mapContainer.current) return;
+
+    // Cleanup any existing instances
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
     }
-  };
-
-  useEffect(() => {
-    if (!isReady || !mapContainer.current) return;
-
-    // Clean up any existing instances
-    cleanupMap();
 
     // Initialize new map instance
     mapRef.current = new mapboxgl.Map({
@@ -35,10 +30,16 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
       zoom: 3
     });
 
-    mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    const map = mapRef.current;
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     // Return cleanup function
-    return cleanupMap;
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
   }, [isReady]);
 
   return (
