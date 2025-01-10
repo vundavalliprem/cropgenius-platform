@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Pencil } from "lucide-react";
@@ -16,9 +16,9 @@ interface AreaMapProps {
 }
 
 export function AreaMap({ className }: AreaMapProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const drawRef = useRef<MapboxDraw | null>(null);
+  const mapContainer = React.useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<mapboxgl.Map | null>(null);
+  const [draw, setDraw] = useState<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -29,9 +29,9 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   // Function to update area calculations
-  const updateArea = () => {
-    if (!drawRef.current) return;
-    const data = drawRef.current.getAll();
+  const updateArea = React.useCallback(() => {
+    if (!draw) return;
+    const data = draw.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -39,43 +39,21 @@ export function AreaMap({ className }: AreaMapProps) {
     const area = turf.area(data);
     const multiplier = UNITS[selectedUnit].multiplier;
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
-  };
-
-  // Cleanup function to properly dispose of map resources
-  const cleanupMap = () => {
-    if (drawRef.current && mapRef.current) {
-      // Remove all event listeners with their specific handlers
-      mapRef.current.off('draw.create', updateArea);
-      mapRef.current.off('draw.delete', updateArea);
-      mapRef.current.off('draw.update', updateArea);
-      
-      // Remove draw control
-      mapRef.current.removeControl(drawRef.current);
-      drawRef.current = null;
-    }
-    
-    if (mapRef.current) {
-      // Remove the map instance
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
-  };
+  }, [draw, selectedUnit, setCalculatedArea]);
 
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Clean up any existing instances before creating new ones
-    cleanupMap();
-
-    // Initialize new map instance
-    mapRef.current = new mapboxgl.Map({
+    // Initialize map
+    const newMap = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [-95.7129, 37.0902],
       zoom: 15,
     });
 
-    drawRef.current = new MapboxDraw({
+    // Initialize draw control
+    const newDraw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -84,40 +62,54 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
-    const map = mapRef.current;
-    const draw = drawRef.current;
-
-    map.once('load', () => {
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    newMap.once('load', () => {
+      newMap.addControl(newDraw);
+      newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
-    // Add event listeners with the updateArea function
-    map.on('draw.create', updateArea);
-    map.on('draw.delete', updateArea);
-    map.on('draw.update', updateArea);
+    // Add event listeners
+    newMap.on('draw.create', updateArea);
+    newMap.on('draw.delete', updateArea);
+    newMap.on('draw.update', updateArea);
 
-    // Return cleanup function
-    return cleanupMap;
-  }, [isReady, selectedUnit]);
+    setMap(newMap);
+    setDraw(newDraw);
+
+    // Cleanup function
+    return () => {
+      if (newMap) {
+        newMap.off('draw.create', updateArea);
+        newMap.off('draw.delete', updateArea);
+        newMap.off('draw.update', updateArea);
+        
+        if (newDraw) {
+          newMap.removeControl(newDraw);
+        }
+        
+        newMap.remove();
+      }
+      setMap(null);
+      setDraw(null);
+    };
+  }, [isReady, updateArea]);
 
   const handleStartDrawing = () => {
-    if (drawRef.current) {
-      drawRef.current.changeMode('draw_polygon');
+    if (draw) {
+      draw.changeMode('draw_polygon');
     }
   };
 
   const handleClear = () => {
-    if (drawRef.current) {
-      drawRef.current.deleteAll();
+    if (draw) {
+      draw.deleteAll();
       setCalculatedArea(null);
     }
   };
 
   const handleLocationRequest = async () => {
     const coords = await requestLocation();
-    if (coords && mapRef.current) {
-      mapRef.current.flyTo({
+    if (coords && map) {
+      map.flyTo({
         center: coords,
         zoom: 15
       });
