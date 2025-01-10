@@ -17,8 +17,6 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
-  const mapRef = React.useRef<mapboxgl.Map | null>(null);
-  const drawRef = React.useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -28,11 +26,8 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  const updateArea = React.useCallback(() => {
-    const draw = drawRef.current;
-    if (!draw) return;
-    
-    const data = draw.getAll();
+  const updateArea = React.useCallback((e: { target: MapboxDraw }) => {
+    const data = e.target.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -43,89 +38,78 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [selectedUnit, setCalculatedArea]);
 
   const handleStartDrawing = React.useCallback(() => {
-    if (drawRef.current) {
-      drawRef.current.changeMode('draw_polygon');
+    const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
+    if (drawControl) {
+      (drawControl as HTMLElement).click();
     }
   }, []);
 
   const handleClear = React.useCallback(() => {
-    if (drawRef.current) {
-      drawRef.current.deleteAll();
+    const trashControl = document.querySelector('.mapbox-gl-draw_trash');
+    if (trashControl) {
+      (trashControl as HTMLElement).click();
       setCalculatedArea(null);
     }
   }, [setCalculatedArea]);
 
   const handleLocationRequest = React.useCallback(async () => {
     const coords = await requestLocation();
-    if (coords && mapRef.current) {
-      mapRef.current.flyTo({
+    if (coords && mapContainer.current) {
+      const map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
         center: coords,
         zoom: 15
       });
-    }
-  }, [requestLocation]);
-
-  React.useEffect(() => {
-    if (!isReady || !mapContainer.current) return;
-
-    let map: mapboxgl.Map | null = null;
-    let draw: MapboxDraw | null = null;
-
-    try {
-      // Initialize map
-      map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
-
-      mapRef.current = map;
-
-      // Initialize draw control
-      draw = new MapboxDraw({
+      
+      const draw = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
           polygon: true,
           trash: true
-        },
-        defaultMode: 'simple_select'
-      });
-
-      drawRef.current = draw;
-
-      // Add controls and event listeners after map loads
-      map.once('load', () => {
-        if (map && draw) {
-          map.addControl(draw);
-          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          
-          map.on('draw.create', updateArea);
-          map.on('draw.delete', updateArea);
-          map.on('draw.update', updateArea);
         }
       });
 
-    } catch (error) {
-      console.error('Map initialization error:', error);
-    }
+      map.addControl(draw);
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      
+      map.on('draw.create', () => updateArea(draw));
+      map.on('draw.delete', () => updateArea(draw));
+      map.on('draw.update', () => updateArea(draw));
 
-    // Cleanup function
-    return () => {
-      if (map) {
-        map.off('draw.create', updateArea);
-        map.off('draw.delete', updateArea);
-        map.off('draw.update', updateArea);
-        
-        if (draw) {
-          map.removeControl(draw);
-        }
-        
+      return () => {
         map.remove();
-      }
+      };
+    }
+  }, [requestLocation, updateArea]);
 
-      mapRef.current = null;
-      drawRef.current = null;
+  React.useEffect(() => {
+    if (!isReady || !mapContainer.current) return;
+
+    const map = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
+
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
+      }
+    });
+
+    map.addControl(draw);
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    map.on('draw.create', () => updateArea(draw));
+    map.on('draw.delete', () => updateArea(draw));
+    map.on('draw.update', () => updateArea(draw));
+
+    return () => {
+      map.remove();
     };
   }, [isReady, updateArea]);
 
