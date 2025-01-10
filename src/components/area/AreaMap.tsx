@@ -17,6 +17,8 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
+  const mapRef = React.useRef<mapboxgl.Map | null>(null);
+  const drawRef = React.useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -26,63 +28,57 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
+  const calculateArea = React.useCallback(() => {
+    if (!drawRef.current) return;
+    const data = drawRef.current.getAll();
+    if (!data?.features.length) {
+      setCalculatedArea(null);
+      return;
+    }
+    const area = turf.area(data);
+    const multiplier = UNITS[selectedUnit].multiplier;
+    setCalculatedArea(Number((area * multiplier).toFixed(2)));
+  }, [selectedUnit, setCalculatedArea]);
+
   React.useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    let mounted = true;
+    mapRef.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
 
-    const calculateArea = (draw: MapboxDraw) => {
-      if (!mounted) return;
-      const data = draw.getAll();
-      if (!data?.features.length) {
-        setCalculatedArea(null);
-        return;
+    drawRef.current = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
       }
-      const area = turf.area(data);
-      const multiplier = UNITS[selectedUnit].multiplier;
-      setCalculatedArea(Number((area * multiplier).toFixed(2)));
-    };
+    });
 
-    const initMap = () => {
-      if (!mounted || !mapContainer.current) return;
+    const map = mapRef.current;
+    const draw = drawRef.current;
 
-      const map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    map.addControl(draw);
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-      const draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        }
-      });
-
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-      map.on('draw.create', () => calculateArea(draw));
-      map.on('draw.delete', () => calculateArea(draw));
-      map.on('draw.update', () => calculateArea(draw));
-
-      return { map, draw };
-    };
-
-    const { map, draw } = initMap() || {};
+    map.on('draw.create', calculateArea);
+    map.on('draw.delete', calculateArea);
+    map.on('draw.update', calculateArea);
 
     return () => {
-      mounted = false;
-      if (map) {
-        if (draw) {
-          map.removeControl(draw);
+      if (mapRef.current) {
+        if (drawRef.current) {
+          mapRef.current.removeControl(drawRef.current);
         }
-        map.remove();
+        mapRef.current.remove();
+        mapRef.current = null;
+        drawRef.current = null;
       }
     };
-  }, [isReady, selectedUnit, setCalculatedArea]);
+  }, [isReady, calculateArea]);
 
   const handleStartDrawing = () => {
     const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
@@ -102,20 +98,10 @@ export function AreaMap({ className }: AreaMapProps) {
   const handleLocationRequest = async () => {
     try {
       const coords = await requestLocation();
-      if (!coords || !mapContainer.current || !isReady) return;
+      if (!coords || !mapContainer.current || !isReady || !mapRef.current) return;
 
-      const map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: coords,
-        zoom: 15,
-      });
-
-      return () => {
-        if (map) {
-          map.remove();
-        }
-      };
+      mapRef.current.setCenter(coords);
+      mapRef.current.setZoom(15);
     } catch (error) {
       console.error('Location request error:', error);
     }
