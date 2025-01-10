@@ -32,73 +32,55 @@ export function AreaMap({ className }: AreaMapProps) {
     let map: mapboxgl.Map | null = null;
     let draw: MapboxDraw | null = null;
 
-    try {
-      // Initialize map
-      map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    const initializeMap = () => {
+      try {
+        map = new mapboxgl.Map({
+          container: mapContainer.current!,
+          style: 'mapbox://styles/mapbox/satellite-v9',
+          center: [-95.7129, 37.0902],
+          zoom: 15,
+        });
 
-      // Initialize draw controls
-      draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        }
-      });
-
-      // Add controls
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-      // Event handlers
-      const handleDrawCreate = () => {
-        if (!draw) return;
-        const data = draw.getAll();
-        if (!data?.features.length) {
-          setCalculatedArea(null);
-          return;
-        }
-        const area = turf.area(data);
-        const multiplier = UNITS[selectedUnit].multiplier;
-        setCalculatedArea(Number((area * multiplier).toFixed(2)));
-      };
-
-      const handleDrawDelete = handleDrawCreate;
-      const handleDrawUpdate = handleDrawCreate;
-
-      // Add event listeners
-      map.on('draw.create', handleDrawCreate);
-      map.on('draw.delete', handleDrawDelete);
-      map.on('draw.update', handleDrawUpdate);
-
-      // Cleanup function
-      return () => {
-        if (map) {
-          map.off('draw.create', handleDrawCreate);
-          map.off('draw.delete', handleDrawDelete);
-          map.off('draw.update', handleDrawUpdate);
-          if (draw) {
-            map.removeControl(draw);
+        draw = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+            polygon: true,
+            trash: true
           }
-          map.remove();
-        }
-        map = null;
-        draw = null;
-      };
-    } catch (error) {
-      console.error('Map initialization error:', error);
-      return () => {
-        if (map) {
-          map.remove();
-        }
-        map = null;
-        draw = null;
-      };
-    }
+        });
+
+        map.addControl(draw);
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        const calculateArea = () => {
+          if (!draw) return;
+          const data = draw.getAll();
+          if (!data?.features.length) {
+            setCalculatedArea(null);
+            return;
+          }
+          const area = turf.area(data);
+          const multiplier = UNITS[selectedUnit].multiplier;
+          setCalculatedArea(Number((area * multiplier).toFixed(2)));
+        };
+
+        map.on('draw.create', calculateArea);
+        map.on('draw.delete', calculateArea);
+        map.on('draw.update', calculateArea);
+      } catch (error) {
+        console.error('Map initialization error:', error);
+      }
+    };
+
+    initializeMap();
+
+    return () => {
+      if (map) {
+        map.remove();
+      }
+      map = null;
+      draw = null;
+    };
   }, [isReady, selectedUnit, setCalculatedArea]);
 
   const handleStartDrawing = () => {
@@ -120,14 +102,14 @@ export function AreaMap({ className }: AreaMapProps) {
     try {
       const coords = await requestLocation();
       if (coords && mapContainer.current) {
-        const map = new mapboxgl.Map({
+        const newMap = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: coords,
           zoom: 15,
         });
         return () => {
-          map.remove();
+          newMap.remove();
         };
       }
     } catch (error) {
