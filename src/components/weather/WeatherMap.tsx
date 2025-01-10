@@ -56,6 +56,11 @@ export function WeatherMap({ className }: WeatherMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
+    // Cleanup previous instance if it exists
+    if (mapInstance.current) {
+      mapInstance.current.remove();
+    }
+
     mapInstance.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
