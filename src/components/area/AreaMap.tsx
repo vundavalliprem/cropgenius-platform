@@ -66,24 +66,39 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [requestLocation]);
 
   React.useEffect(() => {
+    if (!isReady || !mapContainer.current) return;
+
     let isMounted = true;
 
-    const initializeMap = async () => {
-      if (!isReady || !mapContainer.current || !isMounted) return;
-
-      // Cleanup existing instances
+    // Cleanup function for map instance
+    const cleanupMap = () => {
       if (mapRef.current) {
+        const map = mapRef.current;
+        
+        // Remove event listeners
+        map.off('draw.create', updateArea);
+        map.off('draw.delete', updateArea);
+        map.off('draw.update', updateArea);
+        
+        // Remove controls
         if (drawRef.current) {
-          mapRef.current.removeControl(drawRef.current);
+          map.removeControl(drawRef.current);
           drawRef.current = null;
         }
-        mapRef.current.remove();
+        
+        // Remove map
+        map.remove();
         mapRef.current = null;
       }
+    };
 
-      // Initialize new map
+    // Initialize map
+    const initializeMap = () => {
+      // Clean up existing instance
+      cleanupMap();
+
       const map = new mapboxgl.Map({
-        container: mapContainer.current,
+        container: mapContainer.current!,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
         zoom: 15,
@@ -98,10 +113,7 @@ export function AreaMap({ className }: AreaMapProps) {
 
       // Initialize draw control after map loads
       map.once('load', () => {
-        if (!isMounted) {
-          map.remove();
-          return;
-        }
+        if (!isMounted || !map) return;
 
         const draw = new MapboxDraw({
           displayControlsDefault: false,
@@ -111,11 +123,6 @@ export function AreaMap({ className }: AreaMapProps) {
           },
           defaultMode: 'simple_select'
         });
-
-        if (!isMounted) {
-          map.remove();
-          return;
-        }
 
         drawRef.current = draw;
         map.addControl(draw);
@@ -132,21 +139,7 @@ export function AreaMap({ className }: AreaMapProps) {
 
     return () => {
       isMounted = false;
-      if (mapRef.current) {
-        const map = mapRef.current;
-        // Remove event listeners
-        map.off('draw.create', updateArea);
-        map.off('draw.delete', updateArea);
-        map.off('draw.update', updateArea);
-        
-        // Remove controls and map
-        if (drawRef.current) {
-          map.removeControl(drawRef.current);
-          drawRef.current = null;
-        }
-        map.remove();
-        mapRef.current = null;
-      }
+      cleanupMap();
     };
   }, [isReady, updateArea]);
 
