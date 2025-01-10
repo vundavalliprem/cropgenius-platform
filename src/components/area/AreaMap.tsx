@@ -28,9 +28,26 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
+  // Cleanup function to properly dispose of map resources
+  const cleanupMap = () => {
+    if (drawRef.current) {
+      // Remove draw controls first
+      mapRef.current?.removeControl(drawRef.current);
+      drawRef.current = null;
+    }
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+  };
+
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
+    // Clean up any existing instances
+    cleanupMap();
+
+    // Initialize new map instance
     mapRef.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
@@ -71,13 +88,8 @@ export function AreaMap({ className }: AreaMapProps) {
     map.on('draw.delete', updateArea);
     map.on('draw.update', updateArea);
 
-    return () => {
-      if (map) {
-        map.remove();
-      }
-      mapRef.current = null;
-      drawRef.current = null;
-    };
+    // Return cleanup function
+    return cleanupMap;
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
