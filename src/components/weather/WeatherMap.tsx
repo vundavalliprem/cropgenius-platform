@@ -16,6 +16,7 @@ interface WeatherMapProps {
 
 export function WeatherMap({ className }: WeatherMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<mapboxgl.Map | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const apiKeyRef = useRef(localStorage.getItem('STORMGLASS_API_KEY') || '');
   const { toast } = useToast();
@@ -26,13 +27,10 @@ export function WeatherMap({ className }: WeatherMapProps) {
   });
 
   const handleLocationRequest = () => {
-    if (!mapContainer.current) return;
-    
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const map = (mapContainer.current as any)._map;
-        if (map) {
-          map.flyTo({
+        if (mapInstance.current) {
+          mapInstance.current.flyTo({
             center: [position.coords.longitude, position.coords.latitude],
             zoom: 12
           });
@@ -51,22 +49,19 @@ export function WeatherMap({ className }: WeatherMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    const map = new mapboxgl.Map({
+    mapInstance.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [-95.7129, 37.0902],
       zoom: 4
     });
 
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    // Store map instance on the container element
-    (mapContainer.current as any)._map = map;
+    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     return () => {
-      map.remove();
-      if (mapContainer.current) {
-        delete (mapContainer.current as any)._map;
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
       }
     };
   }, [isReady]);
