@@ -28,13 +28,26 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
+  // Function to update area calculations
+  const updateArea = () => {
+    if (!drawRef.current) return;
+    const data = drawRef.current.getAll();
+    if (!data?.features.length) {
+      setCalculatedArea(null);
+      return;
+    }
+    const area = turf.area(data);
+    const multiplier = UNITS[selectedUnit].multiplier;
+    setCalculatedArea(Number((area * multiplier).toFixed(2)));
+  };
+
   // Cleanup function to properly dispose of map resources
   const cleanupMap = () => {
     if (drawRef.current && mapRef.current) {
-      // Remove all event listeners first
-      mapRef.current.off('draw.create');
-      mapRef.current.off('draw.delete');
-      mapRef.current.off('draw.update');
+      // Remove all event listeners with their specific handlers
+      mapRef.current.off('draw.create', updateArea);
+      mapRef.current.off('draw.delete', updateArea);
+      mapRef.current.off('draw.update', updateArea);
       
       // Remove draw control
       mapRef.current.removeControl(drawRef.current);
@@ -79,18 +92,7 @@ export function AreaMap({ className }: AreaMapProps) {
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
-    const updateArea = () => {
-      if (!draw) return;
-      const data = draw.getAll();
-      if (!data?.features.length) {
-        setCalculatedArea(null);
-        return;
-      }
-      const area = turf.area(data);
-      const multiplier = UNITS[selectedUnit].multiplier;
-      setCalculatedArea(Number((area * multiplier).toFixed(2)));
-    };
-
+    // Add event listeners with the updateArea function
     map.on('draw.create', updateArea);
     map.on('draw.delete', updateArea);
     map.on('draw.update', updateArea);
