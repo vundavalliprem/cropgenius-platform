@@ -45,31 +45,35 @@ export function AreaMap({ className }: AreaMapProps) {
       setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    try {
-      mapInstance = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    const initMap = () => {
+      try {
+        mapInstance = new mapboxgl.Map({
+          container: mapContainer.current!,
+          style: 'mapbox://styles/mapbox/satellite-v9',
+          center: [-95.7129, 37.0902],
+          zoom: 15,
+        });
 
-      drawInstance = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        }
-      });
+        drawInstance = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+            polygon: true,
+            trash: true
+          }
+        });
 
-      mapInstance.addControl(drawInstance);
-      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapInstance.addControl(drawInstance);
+        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-      mapInstance.on('draw.create', calculateArea);
-      mapInstance.on('draw.delete', calculateArea);
-      mapInstance.on('draw.update', calculateArea);
-    } catch (error) {
-      console.error('Map initialization error:', error);
-    }
+        mapInstance.on('draw.create', calculateArea);
+        mapInstance.on('draw.delete', calculateArea);
+        mapInstance.on('draw.update', calculateArea);
+      } catch (error) {
+        console.error('Map initialization error:', error);
+      }
+    };
+
+    initMap();
 
     return () => {
       mounted = false;
@@ -107,7 +111,7 @@ export function AreaMap({ className }: AreaMapProps) {
       const coords = await requestLocation();
       if (!coords || !mapContainer.current || !isReady) return;
 
-      const map = new mapboxgl.Map({
+      const mapInstance = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: coords,
@@ -115,8 +119,8 @@ export function AreaMap({ className }: AreaMapProps) {
       });
 
       return () => {
-        if (map) {
-          map.remove();
+        if (mapInstance) {
+          mapInstance.remove();
         }
       };
     } catch (error) {
