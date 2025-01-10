@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { useWeatherData } from '@/services/stormGlass';
+import { useWeatherData } from '@/services/openWeather';
 
 interface HourlyForecastProps {
   lat: number;
@@ -12,11 +12,11 @@ interface HourlyForecastProps {
 export function HourlyForecast({ lat, lng }: HourlyForecastProps) {
   const { data: weatherData } = useWeatherData({ lat, lng });
 
-  // Generate hourly data (mock data for now since the API doesn't provide hourly forecast)
+  // Generate hourly data (mock data for now)
   const data = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i}:00`,
-    temperature: Math.round((weatherData?.airTemperature?.noaa || 20) + Math.sin(i / 4) * 5),
-    humidity: Math.round((weatherData?.humidity?.noaa || 50) + Math.cos(i / 4) * 10),
+    temperature: Math.round((weatherData?.temp || 20) + Math.sin(i / 4) * 5),
+    humidity: Math.round((weatherData?.humidity || 50) + Math.cos(i / 4) * 10),
   }));
 
   return (

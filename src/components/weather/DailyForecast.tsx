@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { useWeatherData } from '@/services/stormGlass';
+import { useWeatherData } from '@/services/openWeather';
 
 interface DailyForecastProps {
   lat: number;
@@ -12,9 +12,9 @@ interface DailyForecastProps {
 export function DailyForecast({ lat, lng }: DailyForecastProps) {
   const { data: weatherData } = useWeatherData({ lat, lng });
 
-  // Generate daily data (mock data for now since the API doesn't provide daily forecast)
+  // Generate daily data (mock data for now)
   const data = Array.from({ length: 7 }, (_, i) => {
-    const baseTemp = weatherData?.airTemperature?.noaa || 20;
+    const baseTemp = weatherData?.temp || 20;
     return {
       day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i],
       high: Math.round(baseTemp + Math.sin(i / 2) * 3 + 5),
