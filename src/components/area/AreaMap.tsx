@@ -32,55 +32,62 @@ export function AreaMap({ className }: AreaMapProps) {
     let mapInstance: mapboxgl.Map | null = null;
     let drawInstance: MapboxDraw | null = null;
 
-    const calculateArea = () => {
-      if (!drawInstance) return;
-      const data = drawInstance.getAll();
-      if (!data?.features.length) {
-        setCalculatedArea(null);
-        return;
+    const initializeMap = () => {
+      try {
+        mapInstance = new mapboxgl.Map({
+          container: mapContainer.current!,
+          style: 'mapbox://styles/mapbox/satellite-v9',
+          center: [-95.7129, 37.0902],
+          zoom: 15,
+        });
+
+        drawInstance = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+            polygon: true,
+            trash: true
+          }
+        });
+
+        mapInstance.addControl(drawInstance);
+        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        const calculateArea = () => {
+          if (!drawInstance) return;
+          const data = drawInstance.getAll();
+          if (!data?.features.length) {
+            setCalculatedArea(null);
+            return;
+          }
+          const area = turf.area(data);
+          const multiplier = UNITS[selectedUnit].multiplier;
+          setCalculatedArea(Number((area * multiplier).toFixed(2)));
+        };
+
+        mapInstance.on('draw.create', calculateArea);
+        mapInstance.on('draw.delete', calculateArea);
+        mapInstance.on('draw.update', calculateArea);
+
+        return () => {
+          if (mapInstance) {
+            mapInstance.off('draw.create', calculateArea);
+            mapInstance.off('draw.delete', calculateArea);
+            mapInstance.off('draw.update', calculateArea);
+            if (drawInstance) {
+              mapInstance.removeControl(drawInstance);
+            }
+            mapInstance.remove();
+          }
+        };
+      } catch (error) {
+        console.error('Map initialization error:', error);
+        return () => {};
       }
-      const area = turf.area(data);
-      const multiplier = UNITS[selectedUnit].multiplier;
-      setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    try {
-      mapInstance = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
-
-      drawInstance = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        }
-      });
-
-      mapInstance.addControl(drawInstance);
-      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-      mapInstance.on('draw.create', calculateArea);
-      mapInstance.on('draw.delete', calculateArea);
-      mapInstance.on('draw.update', calculateArea);
-
-    } catch (error) {
-      console.error('Map initialization error:', error);
-    }
-
+    const cleanup = initializeMap();
     return () => {
-      if (mapInstance) {
-        mapInstance.off('draw.create', calculateArea);
-        mapInstance.off('draw.delete', calculateArea);
-        mapInstance.off('draw.update', calculateArea);
-        if (drawInstance) {
-          mapInstance.removeControl(drawInstance);
-        }
-        mapInstance.remove();
-      }
+      cleanup();
       mapInstance = null;
       drawInstance = null;
     };
@@ -106,7 +113,7 @@ export function AreaMap({ className }: AreaMapProps) {
       const coords = await requestLocation();
       if (!coords || !mapContainer.current) return;
 
-      const locationMap = new mapboxgl.Map({
+      const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: coords,
@@ -114,7 +121,7 @@ export function AreaMap({ className }: AreaMapProps) {
       });
 
       return () => {
-        locationMap.remove();
+        map.remove();
       };
     } catch (error) {
       console.error('Location request error:', error);
