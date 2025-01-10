@@ -17,8 +17,6 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
-  const mapRef = React.useRef<mapboxgl.Map | null>(null);
-  const drawRef = React.useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -28,9 +26,13 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
+  // Store map and draw instances in state to prevent cloning issues
+  const [map, setMap] = React.useState<mapboxgl.Map | null>(null);
+  const [draw, setDraw] = React.useState<MapboxDraw | null>(null);
+
   const calculateArea = React.useCallback(() => {
-    if (!drawRef.current) return;
-    const data = drawRef.current.getAll();
+    if (!draw) return;
+    const data = draw.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -38,19 +40,19 @@ export function AreaMap({ className }: AreaMapProps) {
     const area = turf.area(data);
     const multiplier = UNITS[selectedUnit].multiplier;
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
-  }, [selectedUnit, setCalculatedArea]);
+  }, [draw, selectedUnit, setCalculatedArea]);
 
   React.useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    mapRef.current = new mapboxgl.Map({
+    const newMap = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [-95.7129, 37.0902],
       zoom: 15,
     });
 
-    drawRef.current = new MapboxDraw({
+    const newDraw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -58,25 +60,25 @@ export function AreaMap({ className }: AreaMapProps) {
       }
     });
 
-    const map = mapRef.current;
-    const draw = drawRef.current;
+    newMap.addControl(newDraw);
+    newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    map.addControl(draw);
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    newMap.on('draw.create', calculateArea);
+    newMap.on('draw.delete', calculateArea);
+    newMap.on('draw.update', calculateArea);
 
-    map.on('draw.create', calculateArea);
-    map.on('draw.delete', calculateArea);
-    map.on('draw.update', calculateArea);
+    setMap(newMap);
+    setDraw(newDraw);
 
     return () => {
-      if (mapRef.current) {
-        if (drawRef.current) {
-          mapRef.current.removeControl(drawRef.current);
+      if (newMap) {
+        if (newDraw) {
+          newMap.removeControl(newDraw);
         }
-        mapRef.current.remove();
-        mapRef.current = null;
-        drawRef.current = null;
+        newMap.remove();
       }
+      setMap(null);
+      setDraw(null);
     };
   }, [isReady, calculateArea]);
 
@@ -98,10 +100,10 @@ export function AreaMap({ className }: AreaMapProps) {
   const handleLocationRequest = async () => {
     try {
       const coords = await requestLocation();
-      if (!coords || !mapContainer.current || !isReady || !mapRef.current) return;
+      if (!coords || !map) return;
 
-      mapRef.current.setCenter(coords);
-      mapRef.current.setZoom(15);
+      map.setCenter(coords);
+      map.setZoom(15);
     } catch (error) {
       console.error('Location request error:', error);
     }
