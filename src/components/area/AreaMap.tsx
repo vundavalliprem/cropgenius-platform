@@ -29,8 +29,10 @@ export function AreaMap({ className }: AreaMapProps) {
   } = useAreaCalculation();
 
   const updateArea = React.useCallback(() => {
-    if (!drawRef.current) return;
-    const data = drawRef.current.getAll();
+    const draw = drawRef.current;
+    if (!draw) return;
+    
+    const data = draw.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -66,6 +68,7 @@ export function AreaMap({ className }: AreaMapProps) {
   React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
+    // Cleanup existing instances
     if (mapRef.current) {
       if (drawRef.current) {
         mapRef.current.removeControl(drawRef.current);
@@ -75,6 +78,7 @@ export function AreaMap({ className }: AreaMapProps) {
       mapRef.current = null;
     }
 
+    // Initialize new map
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
@@ -83,6 +87,7 @@ export function AreaMap({ className }: AreaMapProps) {
     });
     mapRef.current = map;
 
+    // Initialize draw control
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -93,27 +98,38 @@ export function AreaMap({ className }: AreaMapProps) {
     });
     drawRef.current = draw;
 
+    // Add controls once map is loaded
     map.once('load', () => {
       map.addControl(draw);
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
-    map.on('draw.create', updateArea);
-    map.on('draw.delete', updateArea);
-    map.on('draw.update', updateArea);
+    // Setup event listeners
+    const onDrawCreate = () => updateArea();
+    const onDrawDelete = () => updateArea();
+    const onDrawUpdate = () => updateArea();
 
+    map.on('draw.create', onDrawCreate);
+    map.on('draw.delete', onDrawDelete);
+    map.on('draw.update', onDrawUpdate);
+
+    // Cleanup function
     return () => {
       if (mapRef.current) {
         const map = mapRef.current;
-        map.off('draw.create', updateArea);
-        map.off('draw.delete', updateArea);
-        map.off('draw.update', updateArea);
         
+        // Remove event listeners
+        map.off('draw.create', onDrawCreate);
+        map.off('draw.delete', onDrawDelete);
+        map.off('draw.update', onDrawUpdate);
+        
+        // Remove controls
         if (drawRef.current) {
           map.removeControl(drawRef.current);
           drawRef.current = null;
         }
         
+        // Remove map
         map.remove();
         mapRef.current = null;
       }

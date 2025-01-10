@@ -73,7 +73,7 @@ export function WeatherMap({ className }: WeatherMapProps) {
       mapRef.current = null;
     }
 
-    // Initialize new map instance
+    // Initialize new map
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
@@ -90,15 +90,16 @@ export function WeatherMap({ className }: WeatherMapProps) {
     // Add click handler
     map.on('click', handleMapClick);
 
-    // Return cleanup function
+    // Cleanup function
     return () => {
       if (mapRef.current) {
-        mapRef.current.off('click', handleMapClick);
+        const map = mapRef.current;
+        map.off('click', handleMapClick);
         if (navigationControlRef.current) {
-          mapRef.current.removeControl(navigationControlRef.current);
+          map.removeControl(navigationControlRef.current);
           navigationControlRef.current = null;
         }
-        mapRef.current.remove();
+        map.remove();
         mapRef.current = null;
       }
     };

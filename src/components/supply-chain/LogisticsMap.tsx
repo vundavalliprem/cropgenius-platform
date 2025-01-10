@@ -27,7 +27,7 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
       mapRef.current = null;
     }
 
-    // Initialize new map instance
+    // Initialize new map
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
@@ -41,14 +41,15 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
     navigationControlRef.current = navControl;
     map.addControl(navControl, 'top-right');
 
-    // Return cleanup function
+    // Cleanup function
     return () => {
       if (mapRef.current) {
+        const map = mapRef.current;
         if (navigationControlRef.current) {
-          mapRef.current.removeControl(navigationControlRef.current);
+          map.removeControl(navigationControlRef.current);
           navigationControlRef.current = null;
         }
-        mapRef.current.remove();
+        map.remove();
         mapRef.current = null;
       }
     };
