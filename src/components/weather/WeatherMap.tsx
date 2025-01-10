@@ -60,46 +60,67 @@ export function WeatherMap({ className }: WeatherMapProps) {
   }, []);
 
   React.useEffect(() => {
-    if (!isReady || !mapContainer.current) return;
+    let isMounted = true;
 
-    // Cleanup existing instances
-    if (mapRef.current) {
-      mapRef.current.off('click', handleMapClick);
-      if (navigationControlRef.current) {
-        mapRef.current.removeControl(navigationControlRef.current);
-        navigationControlRef.current = null;
-      }
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
+    const initializeMap = async () => {
+      if (!isReady || !mapContainer.current || !isMounted) return;
 
-    // Initialize new map
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [currentLocation.lng, currentLocation.lat],
-      zoom: 4
-    });
-    mapRef.current = map;
-
-    // Add navigation control
-    const navControl = new mapboxgl.NavigationControl();
-    navigationControlRef.current = navControl;
-    map.addControl(navControl, 'top-right');
-
-    // Add click handler
-    map.on('click', handleMapClick);
-
-    // Cleanup function
-    return () => {
+      // Cleanup existing instances
       if (mapRef.current) {
-        const map = mapRef.current;
-        map.off('click', handleMapClick);
+        mapRef.current.off('click', handleMapClick);
         if (navigationControlRef.current) {
-          map.removeControl(navigationControlRef.current);
+          mapRef.current.removeControl(navigationControlRef.current);
           navigationControlRef.current = null;
         }
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      // Initialize new map
+      const map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [currentLocation.lng, currentLocation.lat],
+        zoom: 4
+      });
+
+      if (!isMounted) {
         map.remove();
+        return;
+      }
+
+      mapRef.current = map;
+
+      // Add navigation control
+      const navControl = new mapboxgl.NavigationControl();
+      navigationControlRef.current = navControl;
+      map.addControl(navControl, 'top-right');
+
+      // Add click handler
+      map.on('click', handleMapClick);
+
+      return () => {
+        if (map) {
+          map.off('click', handleMapClick);
+          if (navControl) {
+            map.removeControl(navControl);
+          }
+          map.remove();
+        }
+      };
+    };
+
+    initializeMap();
+
+    return () => {
+      isMounted = false;
+      if (mapRef.current) {
+        mapRef.current.off('click', handleMapClick);
+        if (navigationControlRef.current) {
+          mapRef.current.removeControl(navigationControlRef.current);
+          navigationControlRef.current = null;
+        }
+        mapRef.current.remove();
         mapRef.current = null;
       }
     };

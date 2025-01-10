@@ -15,41 +15,61 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
   const { isReady, error } = useMapInitialization();
 
   React.useEffect(() => {
-    if (!isReady || !mapContainer.current) return;
+    let isMounted = true;
 
-    // Cleanup existing instances
-    if (mapRef.current) {
-      if (navigationControlRef.current) {
-        mapRef.current.removeControl(navigationControlRef.current);
-        navigationControlRef.current = null;
-      }
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
+    const initializeMap = async () => {
+      if (!isReady || !mapContainer.current || !isMounted) return;
 
-    // Initialize new map
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-95.7129, 37.0902],
-      zoom: 3
-    });
-    mapRef.current = map;
-
-    // Add navigation control
-    const navControl = new mapboxgl.NavigationControl();
-    navigationControlRef.current = navControl;
-    map.addControl(navControl, 'top-right');
-
-    // Cleanup function
-    return () => {
+      // Cleanup existing instances
       if (mapRef.current) {
-        const map = mapRef.current;
         if (navigationControlRef.current) {
-          map.removeControl(navigationControlRef.current);
+          mapRef.current.removeControl(navigationControlRef.current);
           navigationControlRef.current = null;
         }
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      // Initialize new map
+      const map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-95.7129, 37.0902],
+        zoom: 3
+      });
+
+      if (!isMounted) {
         map.remove();
+        return;
+      }
+
+      mapRef.current = map;
+
+      // Add navigation control
+      const navControl = new mapboxgl.NavigationControl();
+      navigationControlRef.current = navControl;
+      map.addControl(navControl, 'top-right');
+
+      return () => {
+        if (map) {
+          if (navControl) {
+            map.removeControl(navControl);
+          }
+          map.remove();
+        }
+      };
+    };
+
+    initializeMap();
+
+    return () => {
+      isMounted = false;
+      if (mapRef.current) {
+        if (navigationControlRef.current) {
+          mapRef.current.removeControl(navigationControlRef.current);
+          navigationControlRef.current = null;
+        }
+        mapRef.current.remove();
         mapRef.current = null;
       }
     };

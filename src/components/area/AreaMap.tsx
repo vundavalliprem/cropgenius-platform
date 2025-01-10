@@ -66,71 +66,97 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [requestLocation]);
 
   React.useEffect(() => {
-    if (!isReady || !mapContainer.current) return;
+    let isMounted = true;
 
-    // Cleanup existing instances
-    if (mapRef.current) {
-      if (drawRef.current) {
-        mapRef.current.removeControl(drawRef.current);
-        drawRef.current = null;
-      }
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
+    const initializeMap = async () => {
+      if (!isReady || !mapContainer.current || !isMounted) return;
 
-    // Initialize new map
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
-      zoom: 15,
-    });
-    mapRef.current = map;
-
-    // Initialize draw control
-    const draw = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      },
-      defaultMode: 'simple_select'
-    });
-    drawRef.current = draw;
-
-    // Add controls once map is loaded
-    map.once('load', () => {
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    });
-
-    // Setup event listeners
-    const onDrawCreate = () => updateArea();
-    const onDrawDelete = () => updateArea();
-    const onDrawUpdate = () => updateArea();
-
-    map.on('draw.create', onDrawCreate);
-    map.on('draw.delete', onDrawDelete);
-    map.on('draw.update', onDrawUpdate);
-
-    // Cleanup function
-    return () => {
+      // Cleanup existing instances
       if (mapRef.current) {
-        const map = mapRef.current;
-        
-        // Remove event listeners
-        map.off('draw.create', onDrawCreate);
-        map.off('draw.delete', onDrawDelete);
-        map.off('draw.update', onDrawUpdate);
-        
-        // Remove controls
         if (drawRef.current) {
-          map.removeControl(drawRef.current);
+          mapRef.current.removeControl(drawRef.current);
           drawRef.current = null;
         }
-        
-        // Remove map
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      // Initialize new map
+      const map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
+
+      if (!isMounted) {
         map.remove();
+        return;
+      }
+
+      mapRef.current = map;
+
+      // Initialize draw control
+      const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
+
+      if (!isMounted) {
+        map.remove();
+        return;
+      }
+
+      drawRef.current = draw;
+
+      // Add controls once map is loaded
+      await new Promise<void>((resolve) => {
+        map.once('load', () => {
+          if (isMounted) {
+            map.addControl(draw);
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          }
+          resolve();
+        });
+      });
+
+      // Setup event listeners
+      const onDrawCreate = () => updateArea();
+      const onDrawDelete = () => updateArea();
+      const onDrawUpdate = () => updateArea();
+
+      map.on('draw.create', onDrawCreate);
+      map.on('draw.delete', onDrawDelete);
+      map.on('draw.update', onDrawUpdate);
+
+      return () => {
+        if (map) {
+          map.off('draw.create', onDrawCreate);
+          map.off('draw.delete', onDrawDelete);
+          map.off('draw.update', onDrawUpdate);
+          
+          if (draw) {
+            map.removeControl(draw);
+          }
+          map.remove();
+        }
+      };
+    };
+
+    initializeMap();
+
+    return () => {
+      isMounted = false;
+      if (mapRef.current) {
+        if (drawRef.current) {
+          mapRef.current.removeControl(drawRef.current);
+          drawRef.current = null;
+        }
+        mapRef.current.remove();
         mapRef.current = null;
       }
     };
