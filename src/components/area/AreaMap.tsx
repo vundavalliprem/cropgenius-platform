@@ -29,70 +29,59 @@ export function AreaMap({ className }: AreaMapProps) {
   React.useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
+    let mounted = true;
     let mapInstance: mapboxgl.Map | null = null;
     let drawInstance: MapboxDraw | null = null;
-    let mounted = true;
 
-    const initializeMap = () => {
-      if (!mounted || !mapContainer.current) return () => {};
-
-      try {
-        mapInstance = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          center: [-95.7129, 37.0902],
-          zoom: 15,
-        });
-
-        drawInstance = new MapboxDraw({
-          displayControlsDefault: false,
-          controls: {
-            polygon: true,
-            trash: true
-          }
-        });
-
-        mapInstance.addControl(drawInstance);
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-        const calculateArea = () => {
-          if (!drawInstance || !mounted) return;
-          const data = drawInstance.getAll();
-          if (!data?.features.length) {
-            setCalculatedArea(null);
-            return;
-          }
-          const area = turf.area(data);
-          const multiplier = UNITS[selectedUnit].multiplier;
-          setCalculatedArea(Number((area * multiplier).toFixed(2)));
-        };
-
-        mapInstance.on('draw.create', calculateArea);
-        mapInstance.on('draw.delete', calculateArea);
-        mapInstance.on('draw.update', calculateArea);
-
-        return () => {
-          if (mapInstance) {
-            mapInstance.off('draw.create', calculateArea);
-            mapInstance.off('draw.delete', calculateArea);
-            mapInstance.off('draw.update', calculateArea);
-            if (drawInstance) {
-              mapInstance.removeControl(drawInstance);
-            }
-            mapInstance.remove();
-          }
-        };
-      } catch (error) {
-        console.error('Map initialization error:', error);
-        return () => {};
+    const calculateArea = () => {
+      if (!drawInstance || !mounted) return;
+      const data = drawInstance.getAll();
+      if (!data?.features.length) {
+        setCalculatedArea(null);
+        return;
       }
+      const area = turf.area(data);
+      const multiplier = UNITS[selectedUnit].multiplier;
+      setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    const cleanup = initializeMap();
+    try {
+      mapInstance = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
+
+      drawInstance = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        }
+      });
+
+      mapInstance.addControl(drawInstance);
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      mapInstance.on('draw.create', calculateArea);
+      mapInstance.on('draw.delete', calculateArea);
+      mapInstance.on('draw.update', calculateArea);
+    } catch (error) {
+      console.error('Map initialization error:', error);
+    }
 
     return () => {
       mounted = false;
-      cleanup();
+      if (mapInstance) {
+        mapInstance.off('draw.create', calculateArea);
+        mapInstance.off('draw.delete', calculateArea);
+        mapInstance.off('draw.update', calculateArea);
+        if (drawInstance) {
+          mapInstance.removeControl(drawInstance);
+        }
+        mapInstance.remove();
+      }
       mapInstance = null;
       drawInstance = null;
     };
@@ -116,7 +105,7 @@ export function AreaMap({ className }: AreaMapProps) {
   const handleLocationRequest = async () => {
     try {
       const coords = await requestLocation();
-      if (!coords || !mapContainer.current) return;
+      if (!coords || !mapContainer.current || !isReady) return;
 
       const map = new mapboxgl.Map({
         container: mapContainer.current,
