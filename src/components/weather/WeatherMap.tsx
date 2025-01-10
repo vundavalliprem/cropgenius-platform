@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useMapInitialization } from '../area/hooks/useMapInitialization';
@@ -17,21 +17,30 @@ interface WeatherMapProps {
 export function WeatherMap({ className }: WeatherMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<mapboxgl.Map | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number }>({
+    lat: 37.0902,
+    lng: -95.7129,
+  });
   const { isReady, error: mapError } = useMapInitialization();
   const apiKeyRef = useRef(localStorage.getItem('STORMGLASS_API_KEY') || '');
   const { toast } = useToast();
   
   const { data: weatherData, error: weatherError } = useWeatherData({
-    lat: 37.0902,
-    lng: -95.7129,
+    lat: currentLocation.lat,
+    lng: currentLocation.lng,
   });
 
   const handleLocationRequest = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const newLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setCurrentLocation(newLocation);
         if (mapInstance.current) {
           mapInstance.current.flyTo({
-            center: [position.coords.longitude, position.coords.latitude],
+            center: [newLocation.lng, newLocation.lat],
             zoom: 12
           });
         }
@@ -52,11 +61,17 @@ export function WeatherMap({ className }: WeatherMapProps) {
     mapInstance.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
+      center: [currentLocation.lng, currentLocation.lat],
       zoom: 4
     });
 
     mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    // Add click handler to update location
+    mapInstance.current.on('click', (e) => {
+      const { lng, lat } = e.lngLat;
+      setCurrentLocation({ lat, lng });
+    });
 
     return () => {
       if (mapInstance.current) {
