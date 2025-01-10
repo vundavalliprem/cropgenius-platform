@@ -17,6 +17,8 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -29,14 +31,14 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    const map = new mapboxgl.Map({
+    mapRef.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [-95.7129, 37.0902],
       zoom: 15,
     });
 
-    const draw = new MapboxDraw({
+    drawRef.current = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -45,12 +47,16 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
+    const map = mapRef.current;
+    const draw = drawRef.current;
+
     map.once('load', () => {
       map.addControl(draw);
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
     const updateArea = () => {
+      if (!draw) return;
       const data = draw.getAll();
       if (!data?.features.length) {
         setCalculatedArea(null);
@@ -65,48 +71,35 @@ export function AreaMap({ className }: AreaMapProps) {
     map.on('draw.delete', updateArea);
     map.on('draw.update', updateArea);
 
-    // Store map instance on the container element
-    const mapElement = mapContainer.current;
-    (mapElement as any)._map = map;
-    (mapElement as any)._draw = draw;
-
     return () => {
-      map.remove();
-      // Clean up references
-      if (mapElement) {
-        delete (mapElement as any)._map;
-        delete (mapElement as any)._draw;
+      if (map) {
+        map.remove();
       }
+      mapRef.current = null;
+      drawRef.current = null;
     };
   }, [isReady, selectedUnit]);
 
   const handleStartDrawing = () => {
-    if (!mapContainer.current) return;
-    const drawInstance = (mapContainer.current as any)._draw;
-    if (drawInstance) {
-      drawInstance.changeMode('draw_polygon');
+    if (drawRef.current) {
+      drawRef.current.changeMode('draw_polygon');
     }
   };
 
   const handleClear = () => {
-    if (!mapContainer.current) return;
-    const drawInstance = (mapContainer.current as any)._draw;
-    if (drawInstance) {
-      drawInstance.deleteAll();
+    if (drawRef.current) {
+      drawRef.current.deleteAll();
       setCalculatedArea(null);
     }
   };
 
   const handleLocationRequest = async () => {
     const coords = await requestLocation();
-    if (coords && mapContainer.current) {
-      const mapInstance = (mapContainer.current as any)._map;
-      if (mapInstance) {
-        mapInstance.flyTo({
-          center: coords,
-          zoom: 15
-        });
-      }
+    if (coords && mapRef.current) {
+      mapRef.current.flyTo({
+        center: coords,
+        zoom: 15
+      });
     }
   };
 
