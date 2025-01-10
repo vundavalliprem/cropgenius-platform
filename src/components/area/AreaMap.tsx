@@ -96,55 +96,36 @@ export function AreaMap({ className }: AreaMapProps) {
 
       mapRef.current = map;
 
-      // Initialize draw control
-      const draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        },
-        defaultMode: 'simple_select'
-      });
-
-      if (!isMounted) {
-        map.remove();
-        return;
-      }
-
-      drawRef.current = draw;
-
-      // Add controls once map is loaded
-      await new Promise<void>((resolve) => {
-        map.once('load', () => {
-          if (isMounted) {
-            map.addControl(draw);
-            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-          }
-          resolve();
-        });
-      });
-
-      // Setup event listeners
-      const onDrawCreate = () => updateArea();
-      const onDrawDelete = () => updateArea();
-      const onDrawUpdate = () => updateArea();
-
-      map.on('draw.create', onDrawCreate);
-      map.on('draw.delete', onDrawDelete);
-      map.on('draw.update', onDrawUpdate);
-
-      return () => {
-        if (map) {
-          map.off('draw.create', onDrawCreate);
-          map.off('draw.delete', onDrawDelete);
-          map.off('draw.update', onDrawUpdate);
-          
-          if (draw) {
-            map.removeControl(draw);
-          }
+      // Initialize draw control after map loads
+      map.once('load', () => {
+        if (!isMounted) {
           map.remove();
+          return;
         }
-      };
+
+        const draw = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+            polygon: true,
+            trash: true
+          },
+          defaultMode: 'simple_select'
+        });
+
+        if (!isMounted) {
+          map.remove();
+          return;
+        }
+
+        drawRef.current = draw;
+        map.addControl(draw);
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // Setup event listeners
+        map.on('draw.create', updateArea);
+        map.on('draw.delete', updateArea);
+        map.on('draw.update', updateArea);
+      });
     };
 
     initializeMap();
@@ -152,11 +133,18 @@ export function AreaMap({ className }: AreaMapProps) {
     return () => {
       isMounted = false;
       if (mapRef.current) {
+        const map = mapRef.current;
+        // Remove event listeners
+        map.off('draw.create', updateArea);
+        map.off('draw.delete', updateArea);
+        map.off('draw.update', updateArea);
+        
+        // Remove controls and map
         if (drawRef.current) {
-          mapRef.current.removeControl(drawRef.current);
+          map.removeControl(drawRef.current);
           drawRef.current = null;
         }
-        mapRef.current.remove();
+        map.remove();
         mapRef.current = null;
       }
     };
