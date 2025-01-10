@@ -10,23 +10,35 @@ interface LogisticsMapProps {
 
 export function LogisticsMap({ className }: LogisticsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const { isReady, error } = useMapInitialization();
+
+  // Cleanup function to properly dispose of map resources
+  const cleanupMap = () => {
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    const map = new mapboxgl.Map({
+    // Clean up any existing instances
+    cleanupMap();
+
+    // Initialize new map instance
+    mapRef.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
       center: [-95.7129, 37.0902],
       zoom: 3
     });
 
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    return () => {
-      map.remove();
-    };
+    // Return cleanup function
+    return cleanupMap;
   }, [isReady]);
 
   return (

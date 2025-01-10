@@ -15,7 +15,7 @@ interface WeatherMapProps {
 
 export function WeatherMap({ className }: WeatherMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number }>({
     lat: 37.0902,
     lng: -95.7129,
@@ -28,6 +28,14 @@ export function WeatherMap({ className }: WeatherMapProps) {
     lng: currentLocation.lng,
   });
 
+  // Cleanup function to properly dispose of map resources
+  const cleanupMap = () => {
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+  };
+
   const handleLocationRequest = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -36,8 +44,8 @@ export function WeatherMap({ className }: WeatherMapProps) {
           lng: position.coords.longitude,
         };
         setCurrentLocation(newLocation);
-        if (mapInstance.current) {
-          mapInstance.current.flyTo({
+        if (mapRef.current) {
+          mapRef.current.flyTo({
             center: [newLocation.lng, newLocation.lat],
             zoom: 12
           });
@@ -56,32 +64,27 @@ export function WeatherMap({ className }: WeatherMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Cleanup previous instance if it exists
-    if (mapInstance.current) {
-      mapInstance.current.remove();
-    }
+    // Clean up any existing instances
+    cleanupMap();
 
-    mapInstance.current = new mapboxgl.Map({
+    // Initialize new map instance
+    mapRef.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 4
     });
 
-    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     // Add click handler to update location
-    mapInstance.current.on('click', (e) => {
+    mapRef.current.on('click', (e) => {
       const { lng, lat } = e.lngLat;
       setCurrentLocation({ lat, lng });
     });
 
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-      }
-    };
+    // Return cleanup function
+    return cleanupMap;
   }, [isReady]);
 
   return (
