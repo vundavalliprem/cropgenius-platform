@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useWeatherData } from '@/services/stormGlass';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, MapPin } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import mapboxgl from 'mapbox-gl';
 
@@ -25,6 +25,29 @@ export function WeatherMap({ className }: WeatherMapProps) {
     lng: -95.7129,
   });
 
+  const handleLocationRequest = () => {
+    if (!mapContainer.current) return;
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const map = (mapContainer.current as any)._map;
+        if (map) {
+          map.flyTo({
+            center: [position.coords.longitude, position.coords.latitude],
+            zoom: 12
+          });
+        }
+      },
+      (error) => {
+        toast({
+          title: "Location Error",
+          description: "Unable to get your location. Please enable location services.",
+          variant: "destructive",
+        });
+      }
+    );
+  };
+
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
@@ -37,8 +60,14 @@ export function WeatherMap({ className }: WeatherMapProps) {
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    // Store map instance on the container element
+    (mapContainer.current as any)._map = map;
+
     return () => {
       map.remove();
+      if (mapContainer.current) {
+        delete (mapContainer.current as any)._map;
+      }
     };
   }, [isReady]);
 
@@ -70,6 +99,17 @@ export function WeatherMap({ className }: WeatherMapProps) {
             onChange={handleApiKeyChange}
           />
           <Button onClick={handleSaveApiKey}>Save Key</Button>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleLocationRequest}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <MapPin className="mr-2 h-4 w-4" />
+            Go to My Location
+          </Button>
         </div>
         
         {weatherError && (
