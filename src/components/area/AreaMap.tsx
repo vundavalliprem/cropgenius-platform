@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Pencil } from "lucide-react";
@@ -17,8 +17,8 @@ interface AreaMapProps {
 
 export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<mapboxgl.Map | null>(null);
-  const [draw, setDraw] = useState<MapboxDraw | null>(null);
+  const mapRef = React.useRef<mapboxgl.Map | null>(null);
+  const drawRef = React.useRef<MapboxDraw | null>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const {
     selectedUnit,
@@ -30,8 +30,8 @@ export function AreaMap({ className }: AreaMapProps) {
 
   // Function to update area calculations
   const updateArea = React.useCallback(() => {
-    if (!draw) return;
-    const data = draw.getAll();
+    if (!drawRef.current) return;
+    const data = drawRef.current.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -39,13 +39,36 @@ export function AreaMap({ className }: AreaMapProps) {
     const area = turf.area(data);
     const multiplier = UNITS[selectedUnit].multiplier;
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
-  }, [draw, selectedUnit, setCalculatedArea]);
+  }, [selectedUnit, setCalculatedArea]);
 
-  useEffect(() => {
+  const handleStartDrawing = React.useCallback(() => {
+    if (drawRef.current) {
+      drawRef.current.changeMode('draw_polygon');
+    }
+  }, []);
+
+  const handleClear = React.useCallback(() => {
+    if (drawRef.current) {
+      drawRef.current.deleteAll();
+      setCalculatedArea(null);
+    }
+  }, [setCalculatedArea]);
+
+  const handleLocationRequest = React.useCallback(async () => {
+    const coords = await requestLocation();
+    if (coords && mapRef.current) {
+      mapRef.current.flyTo({
+        center: coords,
+        zoom: 15
+      });
+    }
+  }, [requestLocation]);
+
+  React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
     // Initialize map
-    const newMap = new mapboxgl.Map({
+    mapRef.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [-95.7129, 37.0902],
@@ -53,7 +76,7 @@ export function AreaMap({ className }: AreaMapProps) {
     });
 
     // Initialize draw control
-    const newDraw = new MapboxDraw({
+    drawRef.current = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
         polygon: true,
@@ -62,59 +85,37 @@ export function AreaMap({ className }: AreaMapProps) {
       defaultMode: 'simple_select'
     });
 
-    newMap.once('load', () => {
-      newMap.addControl(newDraw);
-      newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    const map = mapRef.current;
+    const draw = drawRef.current;
+
+    map.once('load', () => {
+      map.addControl(draw);
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     });
 
     // Add event listeners
-    newMap.on('draw.create', updateArea);
-    newMap.on('draw.delete', updateArea);
-    newMap.on('draw.update', updateArea);
-
-    setMap(newMap);
-    setDraw(newDraw);
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
 
     // Cleanup function
     return () => {
-      if (newMap) {
-        newMap.off('draw.create', updateArea);
-        newMap.off('draw.delete', updateArea);
-        newMap.off('draw.update', updateArea);
+      if (mapRef.current) {
+        const map = mapRef.current;
+        map.off('draw.create', updateArea);
+        map.off('draw.delete', updateArea);
+        map.off('draw.update', updateArea);
         
-        if (newDraw) {
-          newMap.removeControl(newDraw);
+        if (drawRef.current) {
+          map.removeControl(drawRef.current);
+          drawRef.current = null;
         }
         
-        newMap.remove();
+        map.remove();
+        mapRef.current = null;
       }
-      setMap(null);
-      setDraw(null);
     };
   }, [isReady, updateArea]);
-
-  const handleStartDrawing = () => {
-    if (draw) {
-      draw.changeMode('draw_polygon');
-    }
-  };
-
-  const handleClear = () => {
-    if (draw) {
-      draw.deleteAll();
-      setCalculatedArea(null);
-    }
-  };
-
-  const handleLocationRequest = async () => {
-    const coords = await requestLocation();
-    if (coords && map) {
-      map.flyTo({
-        center: coords,
-        zoom: 15
-      });
-    }
-  };
 
   return (
     <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
