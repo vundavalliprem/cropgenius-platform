@@ -29,57 +29,60 @@ export function AreaMap({ className }: AreaMapProps) {
   React.useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    let map: mapboxgl.Map | null = null;
-    let draw: MapboxDraw | null = null;
+    let mapInstance: mapboxgl.Map | null = null;
+    let drawInstance: MapboxDraw | null = null;
 
-    const initializeMap = () => {
-      try {
-        map = new mapboxgl.Map({
-          container: mapContainer.current!,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          center: [-95.7129, 37.0902],
-          zoom: 15,
-        });
-
-        draw = new MapboxDraw({
-          displayControlsDefault: false,
-          controls: {
-            polygon: true,
-            trash: true
-          }
-        });
-
-        map.addControl(draw);
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-        const calculateArea = () => {
-          if (!draw) return;
-          const data = draw.getAll();
-          if (!data?.features.length) {
-            setCalculatedArea(null);
-            return;
-          }
-          const area = turf.area(data);
-          const multiplier = UNITS[selectedUnit].multiplier;
-          setCalculatedArea(Number((area * multiplier).toFixed(2)));
-        };
-
-        map.on('draw.create', calculateArea);
-        map.on('draw.delete', calculateArea);
-        map.on('draw.update', calculateArea);
-      } catch (error) {
-        console.error('Map initialization error:', error);
+    const calculateArea = () => {
+      if (!drawInstance) return;
+      const data = drawInstance.getAll();
+      if (!data?.features.length) {
+        setCalculatedArea(null);
+        return;
       }
+      const area = turf.area(data);
+      const multiplier = UNITS[selectedUnit].multiplier;
+      setCalculatedArea(Number((area * multiplier).toFixed(2)));
     };
 
-    initializeMap();
+    try {
+      mapInstance = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
+
+      drawInstance = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        }
+      });
+
+      mapInstance.addControl(drawInstance);
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      mapInstance.on('draw.create', calculateArea);
+      mapInstance.on('draw.delete', calculateArea);
+      mapInstance.on('draw.update', calculateArea);
+
+    } catch (error) {
+      console.error('Map initialization error:', error);
+    }
 
     return () => {
-      if (map) {
-        map.remove();
+      if (mapInstance) {
+        mapInstance.off('draw.create', calculateArea);
+        mapInstance.off('draw.delete', calculateArea);
+        mapInstance.off('draw.update', calculateArea);
+        if (drawInstance) {
+          mapInstance.removeControl(drawInstance);
+        }
+        mapInstance.remove();
       }
-      map = null;
-      draw = null;
+      mapInstance = null;
+      drawInstance = null;
     };
   }, [isReady, selectedUnit, setCalculatedArea]);
 
@@ -101,17 +104,18 @@ export function AreaMap({ className }: AreaMapProps) {
   const handleLocationRequest = async () => {
     try {
       const coords = await requestLocation();
-      if (coords && mapContainer.current) {
-        const newMap = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          center: coords,
-          zoom: 15,
-        });
-        return () => {
-          newMap.remove();
-        };
-      }
+      if (!coords || !mapContainer.current) return;
+
+      const locationMap = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: coords,
+        zoom: 15,
+      });
+
+      return () => {
+        locationMap.remove();
+      };
     } catch (error) {
       console.error('Location request error:', error);
     }
