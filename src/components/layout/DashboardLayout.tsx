@@ -1,6 +1,10 @@
 import React from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, Leaf, DollarSign, Truck, Cloud, Square } from "lucide-react";
+import { Home, Leaf, DollarSign, Truck, Cloud, Square, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -16,6 +20,18 @@ const navigation = [
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Signed out successfully");
+      navigate("/auth");
+    } catch (error) {
+      toast.error("Error signing out");
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-accent">
@@ -36,6 +52,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     {item.name}
                   </a>
                 ))}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-100 hover:text-primary-700"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="mr-3 h-5 w-5" />
+                  Sign Out
+                </Button>
               </nav>
             </div>
           </SidebarContent>
