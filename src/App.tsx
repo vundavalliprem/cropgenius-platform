@@ -44,22 +44,26 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AppRoutes = () => (
+  <TooltipProvider>
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/fertilization" element={<ProtectedRoute><SmartFertilization /></ProtectedRoute>} />
+      <Route path="/finance" element={<ProtectedRoute><FinancialPlanning /></ProtectedRoute>} />
+      <Route path="/supply-chain" element={<ProtectedRoute><SupplyChain /></ProtectedRoute>} />
+      <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
+      <Route path="/area-calculator" element={<ProtectedRoute><AreaCalculator /></ProtectedRoute>} />
+    </Routes>
+  </TooltipProvider>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <TooltipProvider>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          <Route path="/fertilization" element={<ProtectedRoute><SmartFertilization /></ProtectedRoute>} />
-          <Route path="/finance" element={<ProtectedRoute><FinancialPlanning /></ProtectedRoute>} />
-          <Route path="/supply-chain" element={<ProtectedRoute><SupplyChain /></ProtectedRoute>} />
-          <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
-          <Route path="/area-calculator" element={<ProtectedRoute><AreaCalculator /></ProtectedRoute>} />
-        </Routes>
-        <Toaster />
-        <Sonner />
-      </TooltipProvider>
+      <AppRoutes />
+      <Toaster />
+      <Sonner />
     </BrowserRouter>
   </QueryClientProvider>
 );
