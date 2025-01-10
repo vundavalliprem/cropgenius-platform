@@ -31,11 +31,14 @@ export function AreaMap({ className }: AreaMapProps) {
 
     let mapInstance: mapboxgl.Map | null = null;
     let drawInstance: MapboxDraw | null = null;
+    let mounted = true;
 
     const initializeMap = () => {
+      if (!mounted || !mapContainer.current) return () => {};
+
       try {
         mapInstance = new mapboxgl.Map({
-          container: mapContainer.current!,
+          container: mapContainer.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
           zoom: 15,
@@ -53,7 +56,7 @@ export function AreaMap({ className }: AreaMapProps) {
         mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
         const calculateArea = () => {
-          if (!drawInstance) return;
+          if (!drawInstance || !mounted) return;
           const data = drawInstance.getAll();
           if (!data?.features.length) {
             setCalculatedArea(null);
@@ -86,7 +89,9 @@ export function AreaMap({ className }: AreaMapProps) {
     };
 
     const cleanup = initializeMap();
+
     return () => {
+      mounted = false;
       cleanup();
       mapInstance = null;
       drawInstance = null;
@@ -121,7 +126,9 @@ export function AreaMap({ className }: AreaMapProps) {
       });
 
       return () => {
-        map.remove();
+        if (map) {
+          map.remove();
+        }
       };
     } catch (error) {
       console.error('Location request error:', error);
