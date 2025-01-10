@@ -11,31 +11,43 @@ interface LogisticsMapProps {
 export function LogisticsMap({ className }: LogisticsMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<mapboxgl.Map | null>(null);
+  const navigationControlRef = React.useRef<mapboxgl.NavigationControl | null>(null);
   const { isReady, error } = useMapInitialization();
 
   React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Cleanup any existing instances
+    // Cleanup existing instances
     if (mapRef.current) {
+      if (navigationControlRef.current) {
+        mapRef.current.removeControl(navigationControlRef.current);
+        navigationControlRef.current = null;
+      }
       mapRef.current.remove();
       mapRef.current = null;
     }
 
     // Initialize new map instance
-    mapRef.current = new mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
       center: [-95.7129, 37.0902],
       zoom: 3
     });
+    mapRef.current = map;
 
-    const map = mapRef.current;
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    // Add navigation control
+    const navControl = new mapboxgl.NavigationControl();
+    navigationControlRef.current = navControl;
+    map.addControl(navControl, 'top-right');
 
     // Return cleanup function
     return () => {
       if (mapRef.current) {
+        if (navigationControlRef.current) {
+          mapRef.current.removeControl(navigationControlRef.current);
+          navigationControlRef.current = null;
+        }
         mapRef.current.remove();
         mapRef.current = null;
       }

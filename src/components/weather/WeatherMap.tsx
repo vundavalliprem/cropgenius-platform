@@ -16,6 +16,7 @@ interface WeatherMapProps {
 export function WeatherMap({ className }: WeatherMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<mapboxgl.Map | null>(null);
+  const navigationControlRef = React.useRef<mapboxgl.NavigationControl | null>(null);
   const [currentLocation, setCurrentLocation] = React.useState<{ lat: number; lng: number }>({
     lat: 37.0902,
     lng: -95.7129,
@@ -53,43 +54,55 @@ export function WeatherMap({ className }: WeatherMapProps) {
     );
   }, [toast]);
 
+  const handleMapClick = React.useCallback((e: mapboxgl.MapMouseEvent) => {
+    const { lng, lat } = e.lngLat;
+    setCurrentLocation({ lat, lng });
+  }, []);
+
   React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Cleanup any existing instances
+    // Cleanup existing instances
     if (mapRef.current) {
+      mapRef.current.off('click', handleMapClick);
+      if (navigationControlRef.current) {
+        mapRef.current.removeControl(navigationControlRef.current);
+        navigationControlRef.current = null;
+      }
       mapRef.current.remove();
       mapRef.current = null;
     }
 
     // Initialize new map instance
-    mapRef.current = new mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 4
     });
+    mapRef.current = map;
 
-    const map = mapRef.current;
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    // Add navigation control
+    const navControl = new mapboxgl.NavigationControl();
+    navigationControlRef.current = navControl;
+    map.addControl(navControl, 'top-right');
 
-    // Add click handler to update location
-    const clickHandler = (e: mapboxgl.MapMouseEvent) => {
-      const { lng, lat } = e.lngLat;
-      setCurrentLocation({ lat, lng });
-    };
-    
-    map.on('click', clickHandler);
+    // Add click handler
+    map.on('click', handleMapClick);
 
     // Return cleanup function
     return () => {
       if (mapRef.current) {
-        map.off('click', clickHandler);
+        mapRef.current.off('click', handleMapClick);
+        if (navigationControlRef.current) {
+          mapRef.current.removeControl(navigationControlRef.current);
+          navigationControlRef.current = null;
+        }
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, [isReady, currentLocation.lat, currentLocation.lng]);
+  }, [isReady, currentLocation.lat, currentLocation.lng, handleMapClick]);
 
   return (
     <Card 
