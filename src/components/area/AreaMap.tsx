@@ -65,83 +65,73 @@ export function AreaMap({ className }: AreaMapProps) {
     }
   }, [requestLocation]);
 
+  // Initialize map
+  const initializeMap = React.useCallback(() => {
+    if (!mapContainer.current) return;
+
+    const map = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
+
+    mapRef.current = map;
+
+    // Initialize draw control after map loads
+    map.once('load', () => {
+      const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
+
+      drawRef.current = draw;
+      map.addControl(draw);
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Setup event listeners
+      map.on('draw.create', updateArea);
+      map.on('draw.delete', updateArea);
+      map.on('draw.update', updateArea);
+    });
+
+    return map;
+  }, [updateArea]);
+
+  // Cleanup function
+  const cleanupMap = React.useCallback(() => {
+    const map = mapRef.current;
+    if (map) {
+      // Remove event listeners
+      map.off('draw.create', updateArea);
+      map.off('draw.delete', updateArea);
+      map.off('draw.update', updateArea);
+      
+      // Remove controls
+      if (drawRef.current) {
+        map.removeControl(drawRef.current);
+        drawRef.current = null;
+      }
+      
+      // Remove map
+      map.remove();
+      mapRef.current = null;
+    }
+  }, [updateArea]);
+
   React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    let isMounted = true;
-
-    // Cleanup function for map instance
-    const cleanupMap = () => {
-      if (mapRef.current) {
-        const map = mapRef.current;
-        
-        // Remove event listeners
-        map.off('draw.create', updateArea);
-        map.off('draw.delete', updateArea);
-        map.off('draw.update', updateArea);
-        
-        // Remove controls
-        if (drawRef.current) {
-          map.removeControl(drawRef.current);
-          drawRef.current = null;
-        }
-        
-        // Remove map
-        map.remove();
-        mapRef.current = null;
-      }
-    };
-
-    // Initialize map
-    const initializeMap = () => {
-      // Clean up existing instance
-      cleanupMap();
-
-      const map = new mapboxgl.Map({
-        container: mapContainer.current!,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
-
-      if (!isMounted) {
-        map.remove();
-        return;
-      }
-
-      mapRef.current = map;
-
-      // Initialize draw control after map loads
-      map.once('load', () => {
-        if (!isMounted || !map) return;
-
-        const draw = new MapboxDraw({
-          displayControlsDefault: false,
-          controls: {
-            polygon: true,
-            trash: true
-          },
-          defaultMode: 'simple_select'
-        });
-
-        drawRef.current = draw;
-        map.addControl(draw);
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-        // Setup event listeners
-        map.on('draw.create', updateArea);
-        map.on('draw.delete', updateArea);
-        map.on('draw.update', updateArea);
-      });
-    };
-
-    initializeMap();
-
+    const map = initializeMap();
+    
     return () => {
-      isMounted = false;
       cleanupMap();
     };
-  }, [isReady, updateArea]);
+  }, [isReady, initializeMap, cleanupMap]);
 
   return (
     <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
