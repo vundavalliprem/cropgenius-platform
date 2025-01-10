@@ -29,9 +29,9 @@ export function AreaMap({ className }: AreaMapProps) {
   React.useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    let mounted = true;
     let mapInstance: mapboxgl.Map | null = null;
     let drawInstance: MapboxDraw | null = null;
+    let mounted = true;
 
     const calculateArea = () => {
       if (!drawInstance || !mounted) return;
@@ -46,9 +46,11 @@ export function AreaMap({ className }: AreaMapProps) {
     };
 
     const initMap = () => {
+      if (!mounted || !mapContainer.current) return;
+
       try {
         mapInstance = new mapboxgl.Map({
-          container: mapContainer.current!,
+          container: mapContainer.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
           zoom: 15,
@@ -62,12 +64,14 @@ export function AreaMap({ className }: AreaMapProps) {
           }
         });
 
-        mapInstance.addControl(drawInstance);
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        if (mapInstance && drawInstance) {
+          mapInstance.addControl(drawInstance);
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        mapInstance.on('draw.create', calculateArea);
-        mapInstance.on('draw.delete', calculateArea);
-        mapInstance.on('draw.update', calculateArea);
+          mapInstance.on('draw.create', calculateArea);
+          mapInstance.on('draw.delete', calculateArea);
+          mapInstance.on('draw.update', calculateArea);
+        }
       } catch (error) {
         console.error('Map initialization error:', error);
       }
@@ -86,8 +90,6 @@ export function AreaMap({ className }: AreaMapProps) {
         }
         mapInstance.remove();
       }
-      mapInstance = null;
-      drawInstance = null;
     };
   }, [isReady, selectedUnit, setCalculatedArea]);
 
