@@ -68,54 +68,64 @@ export function AreaMap({ className }: AreaMapProps) {
   React.useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Create map instance
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
-      zoom: 15,
-    });
+    let map: mapboxgl.Map | null = null;
+    let draw: MapboxDraw | null = null;
 
-    mapRef.current = map;
+    try {
+      // Initialize map
+      map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
 
-    // Initialize draw control
-    const draw = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      },
-      defaultMode: 'simple_select'
-    });
+      mapRef.current = map;
 
-    drawRef.current = draw;
+      // Initialize draw control
+      draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
 
-    // Add controls after map loads
-    map.once('load', () => {
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      drawRef.current = draw;
 
-      // Add event listeners
-      map.on('draw.create', updateArea);
-      map.on('draw.delete', updateArea);
-      map.on('draw.update', updateArea);
-    });
+      // Add controls and event listeners after map loads
+      map.once('load', () => {
+        if (map && draw) {
+          map.addControl(draw);
+          map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          
+          map.on('draw.create', updateArea);
+          map.on('draw.delete', updateArea);
+          map.on('draw.update', updateArea);
+        }
+      });
+
+    } catch (error) {
+      console.error('Map initialization error:', error);
+    }
 
     // Cleanup function
     return () => {
-      if (mapRef.current) {
-        mapRef.current.off('draw.create', updateArea);
-        mapRef.current.off('draw.delete', updateArea);
-        mapRef.current.off('draw.update', updateArea);
+      if (map) {
+        map.off('draw.create', updateArea);
+        map.off('draw.delete', updateArea);
+        map.off('draw.update', updateArea);
         
-        if (drawRef.current) {
-          mapRef.current.removeControl(drawRef.current);
+        if (draw) {
+          map.removeControl(draw);
         }
         
-        mapRef.current.remove();
-        mapRef.current = null;
-        drawRef.current = null;
+        map.remove();
       }
+
+      mapRef.current = null;
+      drawRef.current = null;
     };
   }, [isReady, updateArea]);
 
