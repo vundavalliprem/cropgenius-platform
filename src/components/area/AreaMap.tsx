@@ -30,12 +30,19 @@ export function AreaMap({ className }: AreaMapProps) {
 
   // Cleanup function to properly dispose of map resources
   const cleanupMap = () => {
-    if (drawRef.current) {
-      // Remove draw controls first
-      mapRef.current?.removeControl(drawRef.current);
+    if (drawRef.current && mapRef.current) {
+      // Remove all event listeners first
+      mapRef.current.off('draw.create');
+      mapRef.current.off('draw.delete');
+      mapRef.current.off('draw.update');
+      
+      // Remove draw control
+      mapRef.current.removeControl(drawRef.current);
       drawRef.current = null;
     }
+    
     if (mapRef.current) {
+      // Remove the map instance
       mapRef.current.remove();
       mapRef.current = null;
     }
@@ -44,7 +51,7 @@ export function AreaMap({ className }: AreaMapProps) {
   useEffect(() => {
     if (!isReady || !mapContainer.current) return;
 
-    // Clean up any existing instances
+    // Clean up any existing instances before creating new ones
     cleanupMap();
 
     // Initialize new map instance
