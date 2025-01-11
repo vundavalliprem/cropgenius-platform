@@ -26,7 +26,7 @@ export function AreaMap({ className }: AreaMapProps) {
     requestLocation,
   } = useAreaCalculation();
 
-  // Use refs instead of state to prevent cloning issues
+  // Store map and draw instances in refs to prevent cloning issues
   const mapRef = React.useRef<mapboxgl.Map | null>(null);
   const drawRef = React.useRef<MapboxDraw | null>(null);
 
@@ -47,6 +47,7 @@ export function AreaMap({ className }: AreaMapProps) {
   React.useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
+    // Initialize map
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
@@ -54,6 +55,7 @@ export function AreaMap({ className }: AreaMapProps) {
       zoom: 15,
     });
 
+    // Initialize draw control
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -62,16 +64,20 @@ export function AreaMap({ className }: AreaMapProps) {
       }
     });
 
+    // Store instances in refs
+    mapRef.current = map;
+    drawRef.current = draw;
+
+    // Add controls
     map.addControl(draw);
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    // Add event listeners
     map.on('draw.create', calculateArea);
     map.on('draw.delete', calculateArea);
     map.on('draw.update', calculateArea);
 
-    mapRef.current = map;
-    drawRef.current = draw;
-
+    // Cleanup function
     return () => {
       if (mapRef.current) {
         if (drawRef.current) {
