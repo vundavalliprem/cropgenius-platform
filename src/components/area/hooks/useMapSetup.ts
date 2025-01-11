@@ -33,7 +33,7 @@ export function useMapSetup({
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
   }, [selectedUnit, setCalculatedArea]);
 
-  useEffect(() => {
+  const initializeMap = useCallback(() => {
     if (!mapContainer.current || !isReady || mapRef.current) return;
 
     const map = new mapboxgl.Map({
@@ -78,7 +78,14 @@ export function useMapSetup({
       map.remove();
       mapRef.current = null;
     };
-  }, [isReady, calculateArea]);
+  }, [isReady, calculateArea, mapContainer]);
+
+  useEffect(() => {
+    const cleanup = initializeMap();
+    return () => {
+      cleanup?.();
+    };
+  }, [initializeMap]);
 
   return {
     mapRef,
