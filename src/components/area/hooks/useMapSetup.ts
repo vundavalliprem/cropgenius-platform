@@ -34,7 +34,7 @@ export function useMapSetup({
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
   }, [selectedUnit, setCalculatedArea]);
 
-  // Initialize map
+  // Initialize map only once
   useEffect(() => {
     if (!mapContainer.current || !isReady || mapRef.current) return;
 
@@ -48,12 +48,14 @@ export function useMapSetup({
     mapRef.current = map;
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, [isReady]);
 
-  // Initialize draw controls and event listeners
+  // Initialize draw controls and event listeners separately
   useEffect(() => {
     if (!mapRef.current || !isReady || eventsAttachedRef.current) return;
 
@@ -69,19 +71,25 @@ export function useMapSetup({
     mapRef.current.addControl(draw);
     mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    const map = mapRef.current;
+
     // Add event listeners
-    mapRef.current.on('draw.create', calculateArea);
-    mapRef.current.on('draw.delete', calculateArea);
-    mapRef.current.on('draw.update', calculateArea);
+    const handleDrawCreate = () => calculateArea();
+    const handleDrawDelete = () => calculateArea();
+    const handleDrawUpdate = () => calculateArea();
+
+    map.on('draw.create', handleDrawCreate);
+    map.on('draw.delete', handleDrawDelete);
+    map.on('draw.update', handleDrawUpdate);
 
     eventsAttachedRef.current = true;
 
     return () => {
-      if (mapRef.current && drawRef.current) {
-        mapRef.current.off('draw.create', calculateArea);
-        mapRef.current.off('draw.delete', calculateArea);
-        mapRef.current.off('draw.update', calculateArea);
-        mapRef.current.removeControl(drawRef.current);
+      if (map && drawRef.current) {
+        map.off('draw.create', handleDrawCreate);
+        map.off('draw.delete', handleDrawDelete);
+        map.off('draw.update', handleDrawUpdate);
+        map.removeControl(drawRef.current);
         drawRef.current = null;
         eventsAttachedRef.current = false;
       }
