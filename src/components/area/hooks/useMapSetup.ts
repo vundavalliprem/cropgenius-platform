@@ -34,15 +34,18 @@ export function useMapSetup({
   }, [selectedUnit, setCalculatedArea]);
 
   useEffect(() => {
-    // Early return if conditions aren't met
     if (!mapContainer.current || !isReady) {
-      return undefined;
+      return;
     }
 
-    // Cleanup existing instances if they exist
+    // Cleanup existing instances
     if (mapRef.current) {
+      if (drawRef.current) {
+        mapRef.current.removeControl(drawRef.current);
+      }
       mapRef.current.remove();
       mapRef.current = null;
+      drawRef.current = null;
     }
 
     // Initialize map
@@ -70,7 +73,7 @@ export function useMapSetup({
     mapRef.current = map;
     drawRef.current = draw;
 
-    // Setup event handlers
+    // Event handlers
     const handleDrawCreate = () => calculateArea();
     const handleDrawDelete = () => calculateArea();
     const handleDrawUpdate = () => calculateArea();
