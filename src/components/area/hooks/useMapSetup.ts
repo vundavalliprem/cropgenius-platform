@@ -19,7 +19,6 @@ export function useMapSetup({
 }: UseMapSetupProps) {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
-  const eventsAttachedRef = useRef(false);
 
   const calculateArea = useCallback(() => {
     if (!drawRef.current) return;
@@ -34,7 +33,6 @@ export function useMapSetup({
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
   }, [selectedUnit, setCalculatedArea]);
 
-  // Initialize map only once
   useEffect(() => {
     if (!mapContainer.current || !isReady || mapRef.current) return;
 
@@ -45,20 +43,6 @@ export function useMapSetup({
       zoom: 15,
     });
 
-    mapRef.current = map;
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, [isReady]);
-
-  // Initialize draw controls and event listeners separately
-  useEffect(() => {
-    if (!mapRef.current || !isReady || eventsAttachedRef.current) return;
-
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -67,13 +51,9 @@ export function useMapSetup({
       }
     });
 
-    drawRef.current = draw;
-    mapRef.current.addControl(draw);
-    mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.addControl(draw);
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    const map = mapRef.current;
-
-    // Add event listeners
     const handleDrawCreate = () => calculateArea();
     const handleDrawDelete = () => calculateArea();
     const handleDrawUpdate = () => calculateArea();
@@ -82,17 +62,21 @@ export function useMapSetup({
     map.on('draw.delete', handleDrawDelete);
     map.on('draw.update', handleDrawUpdate);
 
-    eventsAttachedRef.current = true;
+    mapRef.current = map;
+    drawRef.current = draw;
 
     return () => {
-      if (map && drawRef.current) {
-        map.off('draw.create', handleDrawCreate);
-        map.off('draw.delete', handleDrawDelete);
-        map.off('draw.update', handleDrawUpdate);
+      map.off('draw.create', handleDrawCreate);
+      map.off('draw.delete', handleDrawDelete);
+      map.off('draw.update', handleDrawUpdate);
+      
+      if (drawRef.current) {
         map.removeControl(drawRef.current);
         drawRef.current = null;
-        eventsAttachedRef.current = false;
       }
+      
+      map.remove();
+      mapRef.current = null;
     };
   }, [isReady, calculateArea]);
 
