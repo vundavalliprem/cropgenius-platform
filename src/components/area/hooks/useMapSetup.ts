@@ -33,9 +33,19 @@ export function useMapSetup({
     setCalculatedArea(Number((area * multiplier).toFixed(2)));
   }, [selectedUnit, setCalculatedArea]);
 
-  const initializeMap = useCallback(() => {
-    if (!mapContainer.current || !isReady || mapRef.current) return;
+  useEffect(() => {
+    // Early return if conditions aren't met
+    if (!mapContainer.current || !isReady) {
+      return undefined;
+    }
 
+    // Cleanup existing instances if they exist
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    // Initialize map
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-v9',
@@ -43,6 +53,7 @@ export function useMapSetup({
       zoom: 15,
     });
 
+    // Initialize draw control
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -51,41 +62,39 @@ export function useMapSetup({
       }
     });
 
+    // Add controls
     map.addControl(draw);
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    // Set refs
+    mapRef.current = map;
+    drawRef.current = draw;
+
+    // Setup event handlers
     const handleDrawCreate = () => calculateArea();
     const handleDrawDelete = () => calculateArea();
     const handleDrawUpdate = () => calculateArea();
 
+    // Add event listeners
     map.on('draw.create', handleDrawCreate);
     map.on('draw.delete', handleDrawDelete);
     map.on('draw.update', handleDrawUpdate);
 
-    mapRef.current = map;
-    drawRef.current = draw;
-
+    // Cleanup function
     return () => {
       map.off('draw.create', handleDrawCreate);
       map.off('draw.delete', handleDrawDelete);
       map.off('draw.update', handleDrawUpdate);
       
-      if (drawRef.current) {
-        map.removeControl(drawRef.current);
-        drawRef.current = null;
+      if (draw) {
+        map.removeControl(draw);
       }
       
       map.remove();
       mapRef.current = null;
+      drawRef.current = null;
     };
   }, [isReady, calculateArea, mapContainer]);
-
-  useEffect(() => {
-    const cleanup = initializeMap();
-    return () => {
-      cleanup?.();
-    };
-  }, [initializeMap]);
 
   return {
     mapRef,
