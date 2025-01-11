@@ -21,10 +21,9 @@ export function useMapSetup({
   const drawRef = useRef<MapboxDraw | null>(null);
 
   const calculateArea = useCallback(() => {
-    const draw = drawRef.current;
-    if (!draw) return;
+    if (!drawRef.current) return;
     
-    const data = draw.getAll();
+    const data = drawRef.current.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -37,33 +36,39 @@ export function useMapSetup({
   useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
-      zoom: 15,
-    });
+    // Initialize map only if it hasn't been initialized
+    if (!mapRef.current) {
+      mapRef.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
 
-    const draw = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      }
-    });
+      // Initialize draw control
+      drawRef.current = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        }
+      });
 
-    mapRef.current = map;
-    drawRef.current = draw;
+      // Add controls
+      mapRef.current.addControl(drawRef.current);
+      mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    map.addControl(draw);
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Add event listeners
+      const map = mapRef.current;
+      map.on('draw.create', calculateArea);
+      map.on('draw.delete', calculateArea);
+      map.on('draw.update', calculateArea);
+    }
 
-    map.on('draw.create', calculateArea);
-    map.on('draw.delete', calculateArea);
-    map.on('draw.update', calculateArea);
-
+    // Cleanup function
     return () => {
       if (mapRef.current) {
+        // Remove controls and event listeners
         if (drawRef.current) {
           mapRef.current.removeControl(drawRef.current);
         }

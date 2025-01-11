@@ -30,17 +30,21 @@ export function AreaMap({ className }: AreaMapProps) {
   });
 
   const handleStartDrawing = () => {
-    const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
-    if (drawControl) {
-      (drawControl as HTMLElement).click();
+    if (drawRef.current) {
+      const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
+      if (drawControl) {
+        (drawControl as HTMLElement).click();
+      }
     }
   };
 
   const handleClear = () => {
-    const trashControl = document.querySelector('.mapbox-gl-draw_trash');
-    if (trashControl) {
-      (trashControl as HTMLElement).click();
-      setCalculatedArea(null);
+    if (drawRef.current) {
+      const trashControl = document.querySelector('.mapbox-gl-draw_trash');
+      if (trashControl) {
+        (trashControl as HTMLElement).click();
+        setCalculatedArea(null);
+      }
     }
   };
 
