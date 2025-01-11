@@ -21,9 +21,10 @@ export function useMapSetup({
   const drawRef = useRef<MapboxDraw | null>(null);
 
   const calculateArea = useCallback(() => {
-    if (!drawRef.current) return;
+    const draw = drawRef.current;
+    if (!draw) return;
     
-    const data = drawRef.current.getAll();
+    const data = draw.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -34,69 +35,59 @@ export function useMapSetup({
   }, [selectedUnit, setCalculatedArea]);
 
   useEffect(() => {
-    let map: mapboxgl.Map | null = null;
-    let draw: MapboxDraw | null = null;
+    if (!mapContainer.current || !isReady) return;
 
-    if (mapContainer.current && isReady) {
-      // Initialize map
-      map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
+    // Initialize map
+    const map = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
 
-      // Initialize draw control
-      draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        }
-      });
-
-      // Add controls
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-      // Set refs after initialization
-      mapRef.current = map;
-      drawRef.current = draw;
-
-      // Event handlers
-      const handleDrawCreate = () => calculateArea();
-      const handleDrawDelete = () => calculateArea();
-      const handleDrawUpdate = () => calculateArea();
-
-      // Add event listeners
-      map.on('draw.create', handleDrawCreate);
-      map.on('draw.delete', handleDrawDelete);
-      map.on('draw.update', handleDrawUpdate);
-
-      // Cleanup function
-      return () => {
-        map?.off('draw.create', handleDrawCreate);
-        map?.off('draw.delete', handleDrawDelete);
-        map?.off('draw.update', handleDrawUpdate);
-        
-        if (draw && map) {
-          map.removeControl(draw);
-        }
-        
-        if (map) {
-          map.remove();
-        }
-
-        // Clear refs
-        mapRef.current = null;
-        drawRef.current = null;
-      };
-    }
-
-    return () => {
-      if (map) {
-        map.remove();
+    // Initialize draw control
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
       }
+    });
+
+    // Add controls
+    map.addControl(draw);
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    // Set refs
+    mapRef.current = map;
+    drawRef.current = draw;
+
+    // Event handlers
+    const handleDrawCreate = () => calculateArea();
+    const handleDrawDelete = () => calculateArea();
+    const handleDrawUpdate = () => calculateArea();
+
+    // Add event listeners
+    map.on('draw.create', handleDrawCreate);
+    map.on('draw.delete', handleDrawDelete);
+    map.on('draw.update', handleDrawUpdate);
+
+    // Cleanup function
+    return () => {
+      // Remove event listeners first
+      map.off('draw.create', handleDrawCreate);
+      map.off('draw.delete', handleDrawDelete);
+      map.off('draw.update', handleDrawUpdate);
+      
+      // Then remove controls
+      map.removeControl(draw);
+      
+      // Finally remove the map
+      map.remove();
+      
+      // Clear refs
+      mapRef.current = null;
+      drawRef.current = null;
     };
   }, [isReady, calculateArea, mapContainer]);
 
