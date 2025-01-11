@@ -37,58 +37,75 @@ export function useMapSetup({
   useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    // Initialize map
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
-      zoom: 15,
-    });
+    let localMap: mapboxgl.Map | null = null;
+    let localDraw: MapboxDraw | null = null;
 
-    // Initialize draw control
-    const draw = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
+    try {
+      // Initialize map
+      localMap = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
+
+      // Initialize draw control
+      localDraw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        }
+      });
+
+      // Add controls
+      localMap.addControl(localDraw);
+      localMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Set refs
+      mapRef.current = localMap;
+      drawRef.current = localDraw;
+
+      // Event handlers
+      const handleDrawCreate = () => calculateArea();
+      const handleDrawDelete = () => calculateArea();
+      const handleDrawUpdate = () => calculateArea();
+
+      // Add event listeners
+      localMap.on('draw.create', handleDrawCreate);
+      localMap.on('draw.delete', handleDrawDelete);
+      localMap.on('draw.update', handleDrawUpdate);
+
+      // Cleanup function
+      return () => {
+        if (localMap) {
+          // Remove event listeners first
+          localMap.off('draw.create', handleDrawCreate);
+          localMap.off('draw.delete', handleDrawDelete);
+          localMap.off('draw.update', handleDrawUpdate);
+
+          // Then remove controls if they exist
+          if (localDraw) {
+            localMap.removeControl(localDraw);
+          }
+          
+          // Finally remove the map
+          localMap.remove();
+        }
+
+        // Clear refs
+        mapRef.current = null;
+        drawRef.current = null;
+      };
+    } catch (error) {
+      console.error('Error setting up map:', error);
+      // Clean up any partially initialized resources
+      if (localMap) {
+        localMap.remove();
       }
-    });
-
-    // Add controls
-    map.addControl(draw);
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    // Set refs
-    mapRef.current = map;
-    drawRef.current = draw;
-
-    // Event handlers
-    const handleDrawCreate = () => calculateArea();
-    const handleDrawDelete = () => calculateArea();
-    const handleDrawUpdate = () => calculateArea();
-
-    // Add event listeners
-    map.on('draw.create', handleDrawCreate);
-    map.on('draw.delete', handleDrawDelete);
-    map.on('draw.update', handleDrawUpdate);
-
-    // Cleanup function
-    return () => {
-      // Remove event listeners first
-      map.off('draw.create', handleDrawCreate);
-      map.off('draw.delete', handleDrawDelete);
-      map.off('draw.update', handleDrawUpdate);
-      
-      // Then remove controls
-      map.removeControl(draw);
-      
-      // Finally remove the map
-      map.remove();
-      
-      // Clear refs
       mapRef.current = null;
       drawRef.current = null;
-    };
+    }
   }, [isReady, calculateArea, mapContainer]);
 
   return {
