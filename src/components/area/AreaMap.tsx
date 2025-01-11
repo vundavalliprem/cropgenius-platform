@@ -29,26 +29,24 @@ export function AreaMap({ className }: AreaMapProps) {
     mapContainer,
   });
 
-  const handleStartDrawing = () => {
-    if (drawRef.current) {
-      const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
-      if (drawControl) {
-        (drawControl as HTMLElement).click();
-      }
+  const handleStartDrawing = React.useCallback(() => {
+    if (!drawRef.current) return;
+    const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
+    if (drawControl) {
+      (drawControl as HTMLElement).click();
     }
-  };
+  }, []);
 
-  const handleClear = () => {
-    if (drawRef.current) {
-      const trashControl = document.querySelector('.mapbox-gl-draw_trash');
-      if (trashControl) {
-        (trashControl as HTMLElement).click();
-        setCalculatedArea(null);
-      }
+  const handleClear = React.useCallback(() => {
+    if (!drawRef.current) return;
+    const trashControl = document.querySelector('.mapbox-gl-draw_trash');
+    if (trashControl) {
+      (trashControl as HTMLElement).click();
+      setCalculatedArea(null);
     }
-  };
+  }, [setCalculatedArea]);
 
-  const handleLocationRequest = async () => {
+  const handleLocationRequest = React.useCallback(async () => {
     try {
       const coords = await requestLocation();
       if (!coords || !mapRef.current) return;
@@ -58,7 +56,7 @@ export function AreaMap({ className }: AreaMapProps) {
     } catch (error) {
       console.error('Location request error:', error);
     }
-  };
+  }, [requestLocation]);
 
   return (
     <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
