@@ -21,10 +21,9 @@ export function useMapSetup({
   const drawRef = useRef<MapboxDraw | null>(null);
 
   const calculateArea = useCallback(() => {
-    const draw = drawRef.current;
-    if (!draw) return;
+    if (!drawRef.current) return;
     
-    const data = draw.getAll();
+    const data = drawRef.current.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -37,66 +36,48 @@ export function useMapSetup({
   useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    let map: mapboxgl.Map | null = null;
-    let draw: MapboxDraw | null = null;
+    const mapInstance = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [-95.7129, 37.0902],
+      zoom: 15,
+    });
 
-    try {
-      map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [-95.7129, 37.0902],
-        zoom: 15,
-      });
-
-      draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
-        }
-      });
-
-      map.addControl(draw);
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-      // Store references
-      mapRef.current = map;
-      drawRef.current = draw;
-
-      // Event handlers
-      const handleDrawCreate = () => calculateArea();
-      const handleDrawDelete = () => calculateArea();
-      const handleDrawUpdate = () => calculateArea();
-
-      // Add event listeners
-      map.on('draw.create', handleDrawCreate);
-      map.on('draw.delete', handleDrawDelete);
-      map.on('draw.update', handleDrawUpdate);
-
-      return () => {
-        if (map) {
-          map.off('draw.create', handleDrawCreate);
-          map.off('draw.delete', handleDrawDelete);
-          map.off('draw.update', handleDrawUpdate);
-          
-          if (draw) {
-            map.removeControl(draw);
-          }
-          
-          map.remove();
-        }
-        
-        mapRef.current = null;
-        drawRef.current = null;
-      };
-    } catch (error) {
-      console.error('Error setting up map:', error);
-      if (map) {
-        map.remove();
+    const drawInstance = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
       }
+    });
+
+    mapInstance.addControl(drawInstance);
+    mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    mapRef.current = mapInstance;
+    drawRef.current = drawInstance;
+
+    const handleDrawCreate = () => calculateArea();
+    const handleDrawDelete = () => calculateArea();
+    const handleDrawUpdate = () => calculateArea();
+
+    mapInstance.on('draw.create', handleDrawCreate);
+    mapInstance.on('draw.delete', handleDrawDelete);
+    mapInstance.on('draw.update', handleDrawUpdate);
+
+    return () => {
+      mapInstance.off('draw.create', handleDrawCreate);
+      mapInstance.off('draw.delete', handleDrawDelete);
+      mapInstance.off('draw.update', handleDrawUpdate);
+      
+      if (drawInstance) {
+        mapInstance.removeControl(drawInstance);
+      }
+      
+      mapInstance.remove();
       mapRef.current = null;
       drawRef.current = null;
-    }
+    };
   }, [isReady, calculateArea, mapContainer]);
 
   return {
