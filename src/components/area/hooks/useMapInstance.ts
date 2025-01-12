@@ -7,9 +7,12 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
   const navigationControlRef = useRef<mapboxgl.NavigationControl | null>(null);
 
   useEffect(() => {
-    if (!mapContainer.current || !isReady) return;
+    mountedRef.current = true;
 
     const initMap = () => {
+      if (!mapContainer.current || !isReady || !mountedRef.current) return null;
+
+      // Cleanup existing map instance
       if (mapRef.current) {
         if (navigationControlRef.current) {
           try {
@@ -23,28 +26,27 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         mapRef.current = null;
       }
 
-      try {
-        const map = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          center: [-95.7129, 37.0902],
-          zoom: 15,
-        });
+      // Create new map instance
+      const map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
 
-        map.on('load', () => {
-          if (!mountedRef.current) return;
-          const navControl = new mapboxgl.NavigationControl();
-          map.addControl(navControl, 'top-right');
-          navigationControlRef.current = navControl;
-        });
+      // Add navigation control after map loads
+      map.on('load', () => {
+        if (!mountedRef.current) return;
+        const navControl = new mapboxgl.NavigationControl();
+        map.addControl(navControl, 'top-right');
+        navigationControlRef.current = navControl;
+      });
 
-        mapRef.current = map;
-      } catch (error) {
-        console.error('Map initialization error:', error);
-      }
+      mapRef.current = map;
+      return map;
     };
 
-    initMap();
+    const map = initMap();
 
     return () => {
       mountedRef.current = false;
