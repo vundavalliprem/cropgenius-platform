@@ -11,7 +11,6 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
 
     const initMap = () => {
       try {
-        // Clean up existing instances first
         if (mapRef.current) {
           if (navigationControlRef.current) {
             mapRef.current.removeControl(navigationControlRef.current);
@@ -21,7 +20,6 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           mapRef.current = null;
         }
 
-        // Create new map instance
         const map = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
@@ -29,7 +27,6 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           zoom: 15,
         });
 
-        // Add navigation control after map loads
         map.on('load', () => {
           if (!mountedRef.current) return;
           const navControl = new mapboxgl.NavigationControl();

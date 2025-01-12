@@ -24,13 +24,11 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
 
     const initDraw = () => {
       try {
-        // Clean up existing draw instance
         if (drawRef.current && mapRef.current) {
           mapRef.current.removeControl(drawRef.current);
           drawRef.current = null;
         }
 
-        // Initialize new draw instance with explicit styles
         const draw = new MapboxDraw({
           displayControlsDefault: false,
           controls: {
@@ -71,7 +69,6 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           ]
         });
 
-        // Add the draw control to the map
         if (mapRef.current) {
           mapRef.current.addControl(draw, 'top-left');
           drawRef.current = draw;
