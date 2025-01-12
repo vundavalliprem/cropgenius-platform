@@ -11,7 +11,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
 
     const initMap = () => {
       try {
-        // Cleanup existing instances
+        // Clean up existing instances first
         if (mapRef.current) {
           if (navigationControlRef.current) {
             mapRef.current.removeControl(navigationControlRef.current);
@@ -21,6 +21,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           mapRef.current = null;
         }
 
+        // Create new map instance
         const map = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
@@ -28,6 +29,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           zoom: 15,
         });
 
+        // Add navigation control after map loads
         map.on('load', () => {
           if (!mountedRef.current) return;
           const navControl = new mapboxgl.NavigationControl();
@@ -44,7 +46,8 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
     initMap();
 
     return () => {
-      if (mapRef.current && mountedRef.current) {
+      mountedRef.current = false;
+      if (mapRef.current) {
         try {
           if (navigationControlRef.current) {
             mapRef.current.removeControl(navigationControlRef.current);
@@ -53,10 +56,9 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           mapRef.current.remove();
           mapRef.current = null;
         } catch (error) {
-          console.error('Cleanup error:', error);
+          console.error('Map cleanup error:', error);
         }
       }
-      mountedRef.current = false;
     };
   }, [isReady, mapContainer]);
 

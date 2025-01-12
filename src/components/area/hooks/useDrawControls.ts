@@ -24,9 +24,9 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
 
     const initDraw = () => {
       try {
-        // Cleanup existing draw instance
-        if (drawRef.current) {
-          mapRef.current?.removeControl(drawRef.current);
+        // Clean up existing draw instance
+        if (drawRef.current && mapRef.current) {
+          mapRef.current.removeControl(drawRef.current);
           drawRef.current = null;
         }
 
