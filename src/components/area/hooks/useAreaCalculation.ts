@@ -4,14 +4,19 @@ import { useToast } from "@/hooks/use-toast";
 export type AreaUnit = keyof typeof UNITS;
 
 export const UNITS = {
-  sqMeters: { label: "Square Meters", multiplier: 1 },
-  hectares: { label: "Hectares", multiplier: 0.0001 },
   acres: { label: "Acres", multiplier: 0.000247105 },
+  cents: { label: "Cents", multiplier: 0.0247105 },
+  sqKilometers: { label: "Square Kilometers", multiplier: 0.000001 },
+  sqYards: { label: "Square Yards", multiplier: 1.19599 },
+  sqMiles: { label: "Square Miles", multiplier: 3.861e-7 },
+  gunta: { label: "Gunta", multiplier: 0.00988421 },
+  hectares: { label: "Hectares", multiplier: 0.0001 },
+  sqMeters: { label: "Square Meters", multiplier: 1 },
 } as const;
 
 export const useAreaCalculation = () => {
   const { toast } = useToast();
-  const [selectedUnit, setSelectedUnitState] = useState<AreaUnit>("sqMeters");
+  const [selectedUnit, setSelectedUnitState] = useState<AreaUnit>("acres");
   const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
 
   const requestLocation = useCallback(async () => {

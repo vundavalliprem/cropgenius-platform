@@ -30,6 +30,33 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_areas: {
+        Row: {
+          area: number
+          created_at: string
+          id: string
+          name: string
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          area: number
+          created_at?: string
+          id?: string
+          name: string
+          unit: string
+          user_id: string
+        }
+        Update: {
+          area?: number
+          created_at?: string
+          id?: string
+          name?: string
+          unit?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
