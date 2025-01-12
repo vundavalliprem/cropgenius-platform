@@ -23,7 +23,12 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
     if (!mapRef.current || !mountedRef.current) return;
 
     try {
-      const drawInstance = new MapboxDraw({
+      if (drawRef.current) {
+        mapRef.current.removeControl(drawRef.current);
+        drawRef.current = null;
+      }
+
+      const draw = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
           polygon: true,
@@ -31,13 +36,13 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
         }
       });
 
-      mapRef.current.addControl(drawInstance);
-      drawRef.current = drawInstance;
+      mapRef.current.addControl(draw);
+      drawRef.current = draw;
 
       const calculateArea = () => {
-        if (!mountedRef.current || !drawInstance) return;
+        if (!mountedRef.current || !draw) return;
         try {
-          const data = drawInstance.getAll();
+          const data = draw.getAll();
           if (!data?.features.length) {
             onAreaUpdate(null);
             return;
@@ -63,25 +68,24 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
       map.on('draw.create', handlers.create);
       map.on('draw.delete', handlers.delete);
       map.on('draw.update', handlers.update);
-
-      return () => {
-        if (mountedRef.current && mapRef.current && drawRef.current && eventHandlersRef.current) {
-          const map = mapRef.current;
-          const handlers = eventHandlersRef.current;
-          
-          map.off('draw.create', handlers.create);
-          map.off('draw.delete', handlers.delete);
-          map.off('draw.update', handlers.update);
-          
-          map.removeControl(drawRef.current);
-        }
-        drawRef.current = null;
-        eventHandlersRef.current = null;
-      };
     } catch (error) {
       console.error('Draw controls initialization error:', error);
-      return;
     }
+
+    return () => {
+      if (mapRef.current && drawRef.current && eventHandlersRef.current) {
+        const map = mapRef.current;
+        const handlers = eventHandlersRef.current;
+        
+        map.off('draw.create', handlers.create);
+        map.off('draw.delete', handlers.delete);
+        map.off('draw.update', handlers.update);
+        
+        map.removeControl(drawRef.current);
+        drawRef.current = null;
+        eventHandlersRef.current = null;
+      }
+    };
   }, [mapRef, mountedRef, onAreaUpdate, selectedUnit]);
 
   return drawRef;

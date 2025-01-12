@@ -10,7 +10,16 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
     if (!mapContainer.current || !isReady) return;
 
     try {
-      const mapInstance = new mapboxgl.Map({
+      if (mapRef.current) {
+        if (navigationControlRef.current) {
+          mapRef.current.removeControl(navigationControlRef.current);
+          navigationControlRef.current = null;
+        }
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
@@ -18,26 +27,25 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
       });
 
       const navControl = new mapboxgl.NavigationControl();
-      mapInstance.addControl(navControl, 'top-right');
+      map.addControl(navControl, 'top-right');
       
       navigationControlRef.current = navControl;
-      mapRef.current = mapInstance;
+      mapRef.current = map;
+    } catch (error) {
+      console.error('Map initialization error:', error);
+    }
 
-      return () => {
-        mountedRef.current = false;
-        if (mapRef.current && navigationControlRef.current) {
+    return () => {
+      mountedRef.current = false;
+      if (mapRef.current) {
+        if (navigationControlRef.current) {
           mapRef.current.removeControl(navigationControlRef.current);
           navigationControlRef.current = null;
         }
-        if (mapRef.current) {
-          mapRef.current.remove();
-          mapRef.current = null;
-        }
-      };
-    } catch (error) {
-      console.error('Map initialization error:', error);
-      return;
-    }
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
   }, [isReady, mapContainer]);
 
   return { mapRef, mountedRef };
