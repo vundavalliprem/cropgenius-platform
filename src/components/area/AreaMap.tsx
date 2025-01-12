@@ -29,13 +29,14 @@ export function AreaMap({ className }: AreaMapProps) {
     mapContainer,
   });
 
+  // Move all useCallback hooks together, outside of any conditions
   const handleStartDrawing = React.useCallback(() => {
     if (!drawRef.current) return;
     const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
     if (drawControl) {
       (drawControl as HTMLElement).click();
     }
-  }, []);
+  }, [drawRef]);
 
   const handleClear = React.useCallback(() => {
     if (!drawRef.current) return;
@@ -44,7 +45,7 @@ export function AreaMap({ className }: AreaMapProps) {
       (trashControl as HTMLElement).click();
       setCalculatedArea(null);
     }
-  }, [setCalculatedArea]);
+  }, [drawRef, setCalculatedArea]);
 
   const handleLocationRequest = React.useCallback(async () => {
     try {
@@ -56,7 +57,7 @@ export function AreaMap({ className }: AreaMapProps) {
     } catch (error) {
       console.error('Location request error:', error);
     }
-  }, [requestLocation]);
+  }, [requestLocation, mapRef]);
 
   return (
     <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
