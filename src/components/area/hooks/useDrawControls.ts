@@ -30,16 +30,52 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           drawRef.current = null;
         }
 
+        // Initialize new draw instance with explicit styles
         const draw = new MapboxDraw({
           displayControlsDefault: false,
           controls: {
             polygon: true,
             trash: true
-          }
+          },
+          styles: [
+            {
+              'id': 'gl-draw-polygon-fill',
+              'type': 'fill',
+              'filter': ['all', ['==', '$type', 'Polygon']],
+              'paint': {
+                'fill-color': '#3388ff',
+                'fill-outline-color': '#3388ff',
+                'fill-opacity': 0.1
+              }
+            },
+            {
+              'id': 'gl-draw-polygon-stroke',
+              'type': 'line',
+              'filter': ['all', ['==', '$type', 'Polygon']],
+              'paint': {
+                'line-color': '#3388ff',
+                'line-width': 2
+              }
+            },
+            {
+              'id': 'gl-draw-polygon-and-line-vertex-active',
+              'type': 'circle',
+              'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
+              'paint': {
+                'circle-radius': 6,
+                'circle-color': '#fff',
+                'circle-stroke-color': '#3388ff',
+                'circle-stroke-width': 2
+              }
+            }
+          ]
         });
 
-        mapRef.current?.addControl(draw);
-        drawRef.current = draw;
+        // Add the draw control to the map
+        if (mapRef.current) {
+          mapRef.current.addControl(draw, 'top-left');
+          drawRef.current = draw;
+        }
 
         const calculateArea = () => {
           if (!mountedRef.current || !draw) return;
@@ -89,7 +125,9 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           map.off('draw.delete', handlers.delete);
           map.off('draw.update', handlers.update);
           
-          map.removeControl(drawRef.current);
+          if (drawRef.current) {
+            map.removeControl(drawRef.current);
+          }
           drawRef.current = null;
           eventHandlersRef.current = null;
         } catch (error) {

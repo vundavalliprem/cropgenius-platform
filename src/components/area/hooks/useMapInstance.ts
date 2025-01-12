@@ -28,10 +28,13 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           zoom: 15,
         });
 
-        const navControl = new mapboxgl.NavigationControl();
-        map.addControl(navControl, 'top-right');
-        
-        navigationControlRef.current = navControl;
+        map.on('load', () => {
+          if (!mountedRef.current) return;
+          const navControl = new mapboxgl.NavigationControl();
+          map.addControl(navControl, 'top-right');
+          navigationControlRef.current = navControl;
+        });
+
         mapRef.current = map;
       } catch (error) {
         console.error('Map initialization error:', error);
