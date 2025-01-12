@@ -80,7 +80,7 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
     initDraw();
 
     return () => {
-      if (mapRef.current && drawRef.current && eventHandlersRef.current) {
+      if (mapRef.current && mountedRef.current && drawRef.current && eventHandlersRef.current) {
         const map = mapRef.current;
         const handlers = eventHandlersRef.current;
         

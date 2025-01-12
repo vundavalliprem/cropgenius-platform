@@ -41,8 +41,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
     initMap();
 
     return () => {
-      mountedRef.current = false;
-      if (mapRef.current) {
+      if (mapRef.current && mountedRef.current) {
         if (navigationControlRef.current) {
           mapRef.current.removeControl(navigationControlRef.current);
           navigationControlRef.current = null;
@@ -50,6 +49,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         mapRef.current.remove();
         mapRef.current = null;
       }
+      mountedRef.current = false;
     };
   }, [isReady, mapContainer]);
 
