@@ -23,6 +23,7 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
     if (!mapRef.current || !mountedRef.current) return;
 
     try {
+      // Cleanup existing draw instance before creating a new one
       if (drawRef.current) {
         mapRef.current.removeControl(drawRef.current);
         drawRef.current = null;

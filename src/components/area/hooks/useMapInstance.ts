@@ -10,6 +10,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
     if (!mapContainer.current || !isReady) return;
 
     try {
+      // Cleanup existing instances before creating new ones
       if (mapRef.current) {
         if (navigationControlRef.current) {
           mapRef.current.removeControl(navigationControlRef.current);
