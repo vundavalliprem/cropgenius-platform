@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl';
 export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, isReady: boolean) {
   const mountedRef = useRef(true);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const navigationControlRef = useRef<mapboxgl.NavigationControl | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || !isReady) return;
@@ -19,6 +20,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
       });
 
       const navControl = new mapboxgl.NavigationControl();
+      navigationControlRef.current = navControl;
       mapInstance.addControl(navControl, 'top-right');
       
       mapRef.current = mapInstance;
@@ -29,6 +31,10 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
 
     return () => {
       mountedRef.current = false;
+      if (mapInstance && navigationControlRef.current) {
+        mapInstance.removeControl(navigationControlRef.current);
+        navigationControlRef.current = null;
+      }
       if (mapInstance) {
         mapInstance.remove();
       }

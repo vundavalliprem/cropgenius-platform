@@ -13,6 +13,11 @@ interface UseDrawControlsProps {
 
 export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit }: UseDrawControlsProps) {
   const drawRef = useRef<MapboxDraw | null>(null);
+  const eventHandlersRef = useRef<{
+    create: () => void;
+    delete: () => void;
+    update: () => void;
+  } | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || !mountedRef.current) return;
@@ -48,20 +53,28 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
         }
       };
 
+      // Store event handlers in ref to ensure proper cleanup
+      eventHandlersRef.current = {
+        create: calculateArea,
+        delete: calculateArea,
+        update: calculateArea
+      };
+
       const map = mapRef.current;
-      map.on('draw.create', calculateArea);
-      map.on('draw.delete', calculateArea);
-      map.on('draw.update', calculateArea);
+      map.on('draw.create', eventHandlersRef.current.create);
+      map.on('draw.delete', eventHandlersRef.current.delete);
+      map.on('draw.update', eventHandlersRef.current.update);
 
       return () => {
-        if (mountedRef.current && mapRef.current && drawInstance) {
+        if (mountedRef.current && mapRef.current && drawInstance && eventHandlersRef.current) {
           const map = mapRef.current;
-          map.off('draw.create', calculateArea);
-          map.off('draw.delete', calculateArea);
-          map.off('draw.update', calculateArea);
+          map.off('draw.create', eventHandlersRef.current.create);
+          map.off('draw.delete', eventHandlersRef.current.delete);
+          map.off('draw.update', eventHandlersRef.current.update);
           map.removeControl(drawInstance);
         }
         drawRef.current = null;
+        eventHandlersRef.current = null;
       };
     } catch (error) {
       console.error('Draw controls initialization error:', error);
