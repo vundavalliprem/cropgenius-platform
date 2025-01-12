@@ -9,10 +9,8 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
   useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    let mapInstance: mapboxgl.Map | null = null;
-    
     try {
-      mapInstance = new mapboxgl.Map({
+      const mapInstance = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [-95.7129, 37.0902],
@@ -20,26 +18,26 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
       });
 
       const navControl = new mapboxgl.NavigationControl();
-      navigationControlRef.current = navControl;
       mapInstance.addControl(navControl, 'top-right');
       
+      navigationControlRef.current = navControl;
       mapRef.current = mapInstance;
+
+      return () => {
+        mountedRef.current = false;
+        if (mapRef.current && navigationControlRef.current) {
+          mapRef.current.removeControl(navigationControlRef.current);
+          navigationControlRef.current = null;
+        }
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+        }
+      };
     } catch (error) {
       console.error('Map initialization error:', error);
       return;
     }
-
-    return () => {
-      mountedRef.current = false;
-      if (mapInstance && navigationControlRef.current) {
-        mapInstance.removeControl(navigationControlRef.current);
-        navigationControlRef.current = null;
-      }
-      if (mapInstance) {
-        mapInstance.remove();
-      }
-      mapRef.current = null;
-    };
   }, [isReady, mapContainer]);
 
   return { mapRef, mountedRef };

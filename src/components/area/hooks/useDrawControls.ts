@@ -22,10 +22,8 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
   useEffect(() => {
     if (!mapRef.current || !mountedRef.current) return;
 
-    let drawInstance: MapboxDraw | null = null;
-    
     try {
-      drawInstance = new MapboxDraw({
+      const drawInstance = new MapboxDraw({
         displayControlsDefault: false,
         controls: {
           polygon: true,
@@ -53,25 +51,29 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
         }
       };
 
-      // Store event handlers in ref to ensure proper cleanup
-      eventHandlersRef.current = {
+      const handlers = {
         create: calculateArea,
         delete: calculateArea,
         update: calculateArea
       };
 
+      eventHandlersRef.current = handlers;
       const map = mapRef.current;
-      map.on('draw.create', eventHandlersRef.current.create);
-      map.on('draw.delete', eventHandlersRef.current.delete);
-      map.on('draw.update', eventHandlersRef.current.update);
+
+      map.on('draw.create', handlers.create);
+      map.on('draw.delete', handlers.delete);
+      map.on('draw.update', handlers.update);
 
       return () => {
-        if (mountedRef.current && mapRef.current && drawInstance && eventHandlersRef.current) {
+        if (mountedRef.current && mapRef.current && drawRef.current && eventHandlersRef.current) {
           const map = mapRef.current;
-          map.off('draw.create', eventHandlersRef.current.create);
-          map.off('draw.delete', eventHandlersRef.current.delete);
-          map.off('draw.update', eventHandlersRef.current.update);
-          map.removeControl(drawInstance);
+          const handlers = eventHandlersRef.current;
+          
+          map.off('draw.create', handlers.create);
+          map.off('draw.delete', handlers.delete);
+          map.off('draw.update', handlers.update);
+          
+          map.removeControl(drawRef.current);
         }
         drawRef.current = null;
         eventHandlersRef.current = null;
