@@ -33,26 +33,23 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         
         navigationControlRef.current = navControl;
         mapRef.current = map;
-
-        // Store map instance in ref to avoid serialization issues
-        return () => {
-          if (map) {
-            if (navControl) {
-              map.removeControl(navControl);
-            }
-            map.remove();
-          }
-        };
       } catch (error) {
         console.error('Map initialization error:', error);
       }
     };
 
-    const cleanup = initMap();
+    initMap();
 
     return () => {
       mountedRef.current = false;
-      if (cleanup) cleanup();
+      if (mapRef.current) {
+        if (navigationControlRef.current) {
+          mapRef.current.removeControl(navigationControlRef.current);
+          navigationControlRef.current = null;
+        }
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, [isReady, mapContainer]);
 
