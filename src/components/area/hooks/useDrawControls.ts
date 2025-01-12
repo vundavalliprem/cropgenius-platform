@@ -22,56 +22,62 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
   useEffect(() => {
     if (!mapRef.current || !mountedRef.current) return;
 
-    try {
-      // Cleanup existing draw instance before creating a new one
-      if (drawRef.current) {
-        mapRef.current.removeControl(drawRef.current);
-        drawRef.current = null;
-      }
-
-      const draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          polygon: true,
-          trash: true
+    const initDraw = () => {
+      try {
+        // Cleanup existing draw instance
+        if (drawRef.current) {
+          mapRef.current?.removeControl(drawRef.current);
+          drawRef.current = null;
         }
-      });
 
-      mapRef.current.addControl(draw);
-      drawRef.current = draw;
-
-      const calculateArea = () => {
-        if (!mountedRef.current || !draw) return;
-        try {
-          const data = draw.getAll();
-          if (!data?.features.length) {
-            onAreaUpdate(null);
-            return;
+        const draw = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+            polygon: true,
+            trash: true
           }
-          const area = turf.area(data);
-          const multiplier = UNITS[selectedUnit].multiplier;
-          onAreaUpdate(Number((area * multiplier).toFixed(2)));
-        } catch (error) {
-          console.error('Error calculating area:', error);
-          onAreaUpdate(null);
+        });
+
+        mapRef.current?.addControl(draw);
+        drawRef.current = draw;
+
+        const calculateArea = () => {
+          if (!mountedRef.current || !draw) return;
+          try {
+            const data = draw.getAll();
+            if (!data?.features.length) {
+              onAreaUpdate(null);
+              return;
+            }
+            const area = turf.area(data);
+            const multiplier = UNITS[selectedUnit].multiplier;
+            onAreaUpdate(Number((area * multiplier).toFixed(2)));
+          } catch (error) {
+            console.error('Error calculating area:', error);
+            onAreaUpdate(null);
+          }
+        };
+
+        const handlers = {
+          create: calculateArea,
+          delete: calculateArea,
+          update: calculateArea
+        };
+
+        eventHandlersRef.current = handlers;
+        const map = mapRef.current;
+
+        if (map) {
+          map.on('draw.create', handlers.create);
+          map.on('draw.delete', handlers.delete);
+          map.on('draw.update', handlers.update);
         }
-      };
+      } catch (error) {
+        console.error('Draw controls initialization error:', error);
+      }
+    };
 
-      const handlers = {
-        create: calculateArea,
-        delete: calculateArea,
-        update: calculateArea
-      };
-
-      eventHandlersRef.current = handlers;
-      const map = mapRef.current;
-
-      map.on('draw.create', handlers.create);
-      map.on('draw.delete', handlers.delete);
-      map.on('draw.update', handlers.update);
-    } catch (error) {
-      console.error('Draw controls initialization error:', error);
-    }
+    initDraw();
 
     return () => {
       if (mapRef.current && drawRef.current && eventHandlersRef.current) {
