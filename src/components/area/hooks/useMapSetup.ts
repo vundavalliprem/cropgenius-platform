@@ -17,6 +17,7 @@ export function useMapSetup({
   setCalculatedArea,
   mapContainer
 }: UseMapSetupProps) {
+  // Use refs only for reading values, not for storing the instances
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
 
@@ -36,48 +37,79 @@ export function useMapSetup({
   useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    const mapInstance = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-v9',
-      center: [-95.7129, 37.0902],
-      zoom: 15,
-    });
+    // Create local variables for cleanup
+    let localMap: mapboxgl.Map | null = null;
+    let localDraw: MapboxDraw | null = null;
 
-    const drawInstance = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      }
-    });
+    try {
+      // Initialize map
+      localMap = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
 
-    mapInstance.addControl(drawInstance);
-    mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Initialize draw control
+      localDraw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        }
+      });
 
-    mapRef.current = mapInstance;
-    drawRef.current = drawInstance;
+      // Add controls
+      localMap.addControl(localDraw);
+      localMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    const handleDrawCreate = () => calculateArea();
-    const handleDrawDelete = () => calculateArea();
-    const handleDrawUpdate = () => calculateArea();
+      // Update refs after successful initialization
+      mapRef.current = localMap;
+      drawRef.current = localDraw;
 
-    mapInstance.on('draw.create', handleDrawCreate);
-    mapInstance.on('draw.delete', handleDrawDelete);
-    mapInstance.on('draw.update', handleDrawUpdate);
+      // Event handlers
+      const handleDrawCreate = () => calculateArea();
+      const handleDrawDelete = () => calculateArea();
+      const handleDrawUpdate = () => calculateArea();
 
-    return () => {
-      mapInstance.off('draw.create', handleDrawCreate);
-      mapInstance.off('draw.delete', handleDrawDelete);
-      mapInstance.off('draw.update', handleDrawUpdate);
+      // Add event listeners
+      localMap.on('draw.create', handleDrawCreate);
+      localMap.on('draw.delete', handleDrawDelete);
+      localMap.on('draw.update', handleDrawUpdate);
+
+      // Cleanup function
+      return () => {
+        // Remove event listeners first
+        if (localMap) {
+          localMap.off('draw.create', handleDrawCreate);
+          localMap.off('draw.delete', handleDrawDelete);
+          localMap.off('draw.update', handleDrawUpdate);
+        }
+
+        // Remove controls
+        if (localDraw && localMap) {
+          localMap.removeControl(localDraw);
+        }
+
+        // Remove map instance
+        if (localMap) {
+          localMap.remove();
+        }
+
+        // Clear refs
+        mapRef.current = null;
+        drawRef.current = null;
+      };
+    } catch (error) {
+      console.error('Map initialization error:', error);
       
-      if (drawInstance) {
-        mapInstance.removeControl(drawInstance);
+      // Cleanup on error
+      if (localMap) {
+        localMap.remove();
       }
-      
-      mapInstance.remove();
       mapRef.current = null;
       drawRef.current = null;
-    };
+    }
   }, [isReady, calculateArea, mapContainer]);
 
   return {
