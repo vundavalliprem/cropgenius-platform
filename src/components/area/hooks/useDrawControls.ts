@@ -13,22 +13,21 @@ interface UseDrawControlsProps {
 
 export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit }: UseDrawControlsProps) {
   const drawRef = useRef<MapboxDraw | null>(null);
-  const eventHandlersRef = useRef<{
-    create: () => void;
-    delete: () => void;
-    update: () => void;
-  } | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || !mountedRef.current) return;
 
     const initDraw = () => {
-      try {
-        if (drawRef.current && mapRef.current) {
+      if (drawRef.current && mapRef.current) {
+        try {
           mapRef.current.removeControl(drawRef.current);
           drawRef.current = null;
+        } catch (error) {
+          console.error('Error removing draw control:', error);
         }
+      }
 
+      try {
         const draw = new MapboxDraw({
           displayControlsDefault: false,
           controls: {
@@ -69,10 +68,10 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           ]
         });
 
-        if (mapRef.current) {
-          mapRef.current.addControl(draw, 'top-left');
-          drawRef.current = draw;
-        }
+        if (!mapRef.current || !mountedRef.current) return;
+
+        mapRef.current.addControl(draw, 'top-left');
+        drawRef.current = draw;
 
         const calculateArea = () => {
           if (!mountedRef.current || !draw) return;
@@ -91,46 +90,35 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           }
         };
 
-        const handlers = {
-          create: calculateArea,
-          delete: calculateArea,
-          update: calculateArea
-        };
-
-        eventHandlersRef.current = handlers;
         const map = mapRef.current;
 
-        if (map) {
-          map.on('draw.create', handlers.create);
-          map.on('draw.delete', handlers.delete);
-          map.on('draw.update', handlers.update);
-        }
+        map.on('draw.create', calculateArea);
+        map.on('draw.delete', calculateArea);
+        map.on('draw.update', calculateArea);
+
+        return () => {
+          if (map && mountedRef.current) {
+            try {
+              map.off('draw.create', calculateArea);
+              map.off('draw.delete', calculateArea);
+              map.off('draw.update', calculateArea);
+              if (drawRef.current) {
+                map.removeControl(drawRef.current);
+              }
+            } catch (error) {
+              console.error('Draw controls cleanup error:', error);
+            }
+            drawRef.current = null;
+          }
+        };
       } catch (error) {
         console.error('Draw controls initialization error:', error);
       }
     };
 
-    initDraw();
-
+    const cleanup = initDraw();
     return () => {
-      if (mapRef.current && mountedRef.current && drawRef.current && eventHandlersRef.current) {
-        try {
-          const map = mapRef.current;
-          const handlers = eventHandlersRef.current;
-          
-          map.off('draw.create', handlers.create);
-          map.off('draw.delete', handlers.delete);
-          map.off('draw.update', handlers.update);
-          
-          if (drawRef.current) {
-            map.removeControl(drawRef.current);
-          }
-          drawRef.current = null;
-          eventHandlersRef.current = null;
-        } catch (error) {
-          console.error('Draw controls cleanup error:', error);
-        }
-      }
+      if (cleanup) cleanup();
     };
   }, [mapRef, mountedRef, onAreaUpdate, selectedUnit]);
 

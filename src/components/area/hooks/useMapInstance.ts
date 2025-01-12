@@ -10,16 +10,20 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
     if (!mapContainer.current || !isReady) return;
 
     const initMap = () => {
-      try {
-        if (mapRef.current) {
-          if (navigationControlRef.current) {
+      if (mapRef.current) {
+        if (navigationControlRef.current) {
+          try {
             mapRef.current.removeControl(navigationControlRef.current);
-            navigationControlRef.current = null;
+          } catch (error) {
+            console.error('Error removing navigation control:', error);
           }
-          mapRef.current.remove();
-          mapRef.current = null;
+          navigationControlRef.current = null;
         }
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
 
+      try {
         const map = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
@@ -51,10 +55,10 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
             navigationControlRef.current = null;
           }
           mapRef.current.remove();
-          mapRef.current = null;
         } catch (error) {
           console.error('Map cleanup error:', error);
         }
+        mapRef.current = null;
       }
     };
   }, [isReady, mapContainer]);
