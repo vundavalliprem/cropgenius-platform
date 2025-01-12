@@ -81,16 +81,20 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
 
     return () => {
       if (mapRef.current && mountedRef.current && drawRef.current && eventHandlersRef.current) {
-        const map = mapRef.current;
-        const handlers = eventHandlersRef.current;
-        
-        map.off('draw.create', handlers.create);
-        map.off('draw.delete', handlers.delete);
-        map.off('draw.update', handlers.update);
-        
-        map.removeControl(drawRef.current);
-        drawRef.current = null;
-        eventHandlersRef.current = null;
+        try {
+          const map = mapRef.current;
+          const handlers = eventHandlersRef.current;
+          
+          map.off('draw.create', handlers.create);
+          map.off('draw.delete', handlers.delete);
+          map.off('draw.update', handlers.update);
+          
+          map.removeControl(drawRef.current);
+          drawRef.current = null;
+          eventHandlersRef.current = null;
+        } catch (error) {
+          console.error('Draw controls cleanup error:', error);
+        }
       }
     };
   }, [mapRef, mountedRef, onAreaUpdate, selectedUnit]);

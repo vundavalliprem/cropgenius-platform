@@ -42,12 +42,16 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
 
     return () => {
       if (mapRef.current && mountedRef.current) {
-        if (navigationControlRef.current) {
-          mapRef.current.removeControl(navigationControlRef.current);
-          navigationControlRef.current = null;
+        try {
+          if (navigationControlRef.current) {
+            mapRef.current.removeControl(navigationControlRef.current);
+            navigationControlRef.current = null;
+          }
+          mapRef.current.remove();
+          mapRef.current = null;
+        } catch (error) {
+          console.error('Cleanup error:', error);
         }
-        mapRef.current.remove();
-        mapRef.current = null;
       }
       mountedRef.current = false;
     };
