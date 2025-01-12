@@ -72,23 +72,25 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           map.on('draw.delete', handlers.delete);
           map.on('draw.update', handlers.update);
         }
+
+        return () => {
+          if (map && handlers) {
+            map.off('draw.create', handlers.create);
+            map.off('draw.delete', handlers.delete);
+            map.off('draw.update', handlers.update);
+          }
+        };
       } catch (error) {
         console.error('Draw controls initialization error:', error);
       }
     };
 
-    initDraw();
+    const cleanup = initDraw();
 
     return () => {
-      if (mapRef.current && drawRef.current && eventHandlersRef.current) {
-        const map = mapRef.current;
-        const handlers = eventHandlersRef.current;
-        
-        map.off('draw.create', handlers.create);
-        map.off('draw.delete', handlers.delete);
-        map.off('draw.update', handlers.update);
-        
-        map.removeControl(drawRef.current);
+      if (cleanup) cleanup();
+      if (mapRef.current && drawRef.current) {
+        mapRef.current.removeControl(drawRef.current);
         drawRef.current = null;
         eventHandlersRef.current = null;
       }
