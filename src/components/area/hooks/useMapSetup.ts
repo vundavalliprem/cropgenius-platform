@@ -19,12 +19,12 @@ export function useMapSetup({
 }: UseMapSetupProps) {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
+  const mountedRef = useRef(true);
 
   const calculateArea = useCallback(() => {
-    const draw = drawRef.current;
-    if (!draw) return;
+    if (!drawRef.current || !mountedRef.current) return;
     
-    const data = draw.getAll();
+    const data = drawRef.current.getAll();
     if (!data?.features.length) {
       setCalculatedArea(null);
       return;
@@ -37,16 +37,15 @@ export function useMapSetup({
   useEffect(() => {
     if (!mapContainer.current || !isReady) return;
 
-    let map: mapboxgl.Map | null = null;
-    let draw: MapboxDraw | null = null;
-    let mounted = true;
+    let mapInstance: mapboxgl.Map | null = null;
+    let drawInstance: MapboxDraw | null = null;
 
     const initialize = () => {
-      if (!mounted || !mapContainer.current) return;
+      if (!mountedRef.current || !mapContainer.current) return;
 
       try {
         // Initialize map
-        map = new mapboxgl.Map({
+        mapInstance = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/satellite-v9',
           center: [-95.7129, 37.0902],
@@ -54,7 +53,7 @@ export function useMapSetup({
         });
 
         // Initialize draw control
-        draw = new MapboxDraw({
+        drawInstance = new MapboxDraw({
           displayControlsDefault: false,
           controls: {
             polygon: true,
@@ -62,41 +61,45 @@ export function useMapSetup({
           }
         });
 
-        // Add controls
-        map.addControl(draw);
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        // Add controls only if mounted
+        if (mountedRef.current) {
+          mapInstance.addControl(drawInstance);
+          mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        }
 
         // Set refs after successful initialization
-        mapRef.current = map;
-        drawRef.current = draw;
+        mapRef.current = mapInstance;
+        drawRef.current = drawInstance;
 
         // Event handlers
-        const handleDrawCreate = () => calculateArea();
-        const handleDrawDelete = () => calculateArea();
-        const handleDrawUpdate = () => calculateArea();
+        const handleDrawCreate = () => {
+          if (mountedRef.current) calculateArea();
+        };
+        const handleDrawDelete = () => {
+          if (mountedRef.current) calculateArea();
+        };
+        const handleDrawUpdate = () => {
+          if (mountedRef.current) calculateArea();
+        };
 
         // Add event listeners
-        map.on('draw.create', handleDrawCreate);
-        map.on('draw.delete', handleDrawDelete);
-        map.on('draw.update', handleDrawUpdate);
+        mapInstance.on('draw.create', handleDrawCreate);
+        mapInstance.on('draw.delete', handleDrawDelete);
+        mapInstance.on('draw.update', handleDrawUpdate);
 
         return () => {
-          if (!mounted) return;
+          if (!mountedRef.current) return;
 
           // Remove event listeners
-          if (map) {
-            map.off('draw.create', handleDrawCreate);
-            map.off('draw.delete', handleDrawDelete);
-            map.off('draw.update', handleDrawUpdate);
-          }
+          mapInstance?.off('draw.create', handleDrawCreate);
+          mapInstance?.off('draw.delete', handleDrawDelete);
+          mapInstance?.off('draw.update', handleDrawUpdate);
 
           // Remove controls and map
-          if (draw && map) {
-            map.removeControl(draw);
+          if (drawInstance && mapInstance) {
+            mapInstance.removeControl(drawInstance);
           }
-          if (map) {
-            map.remove();
-          }
+          mapInstance?.remove();
 
           // Clear refs
           mapRef.current = null;
@@ -104,8 +107,8 @@ export function useMapSetup({
         };
       } catch (error) {
         console.error('Map initialization error:', error);
-        if (map) {
-          map.remove();
+        if (mapInstance) {
+          mapInstance.remove();
         }
         mapRef.current = null;
         drawRef.current = null;
@@ -115,7 +118,7 @@ export function useMapSetup({
     const cleanup = initialize();
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       if (cleanup) {
         cleanup();
       }
