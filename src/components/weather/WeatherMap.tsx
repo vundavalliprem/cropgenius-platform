@@ -20,7 +20,6 @@ interface WeatherMapProps {
 export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<mapboxgl.Map | null>(null);
-  const navigationControlRef = React.useRef<mapboxgl.NavigationControl | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [currentLocation, setCurrentLocation] = React.useState<{ 
     lat: number; 
@@ -137,28 +136,30 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
   };
 
   const handleLocationRequest = React.useCallback(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const newLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        handleLocationChange(newLocation.lat, newLocation.lng);
-        if (mapRef.current) {
-          mapRef.current.flyTo({
-            center: [newLocation.lng, newLocation.lat],
-            zoom: 12
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          handleLocationChange(newLocation.lat, newLocation.lng);
+          if (mapRef.current) {
+            mapRef.current.flyTo({
+              center: [newLocation.lng, newLocation.lat],
+              zoom: 12
+            });
+          }
+        },
+        (error) => {
+          toast({
+            title: "Location Error",
+            description: "Unable to get your location. Please enable location services.",
+            variant: "destructive",
           });
         }
-      },
-      (error) => {
-        toast({
-          title: "Location Error",
-          description: "Unable to get your location. Please enable location services.",
-          variant: "destructive",
-        });
-      }
-    );
+      );
+    }
   }, [handleLocationChange, toast]);
 
   const handleMapClick = React.useCallback((e: mapboxgl.MapMouseEvent) => {
@@ -167,20 +168,10 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
   }, [handleLocationChange]);
 
   React.useEffect(() => {
-    let isMounted = true;
+    if (!isReady || !mapContainer.current) return;
 
-    const initializeMap = async () => {
-      if (!isReady || !mapContainer.current || !isMounted) return;
-
-      if (mapRef.current) {
-        mapRef.current.off('click', handleMapClick);
-        if (navigationControlRef.current) {
-          mapRef.current.removeControl(navigationControlRef.current);
-          navigationControlRef.current = null;
-        }
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+    const initMap = () => {
+      if (mapRef.current) return;
 
       const map = new mapboxgl.Map({
         container: mapContainer.current,
@@ -189,40 +180,18 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
         zoom: 4
       });
 
-      if (!isMounted) {
-        map.remove();
-        return;
-      }
-
-      mapRef.current = map;
-
       const navControl = new mapboxgl.NavigationControl();
-      navigationControlRef.current = navControl;
       map.addControl(navControl, 'top-right');
 
       map.on('click', handleMapClick);
-
-      return () => {
-        if (map) {
-          map.off('click', handleMapClick);
-          if (navControl) {
-            map.removeControl(navControl);
-          }
-          map.remove();
-        }
-      };
+      mapRef.current = map;
     };
 
-    initializeMap();
+    initMap();
 
     return () => {
-      isMounted = false;
       if (mapRef.current) {
         mapRef.current.off('click', handleMapClick);
-        if (navigationControlRef.current) {
-          mapRef.current.removeControl(navigationControlRef.current);
-          navigationControlRef.current = null;
-        }
         mapRef.current.remove();
         mapRef.current = null;
       }
