@@ -3,20 +3,23 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useMapInitialization } from '../area/hooks/useMapInitialization';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useWeatherData } from '@/services/openWeather';
-import { AlertCircle, MapPin } from 'lucide-react';
+import { AlertCircle, MapPin, Search } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import mapboxgl from 'mapbox-gl';
 
 interface WeatherMapProps {
   className?: string;
+  onLocationChange?: (lat: number, lng: number) => void;
 }
 
-export function WeatherMap({ className }: WeatherMapProps) {
+export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<mapboxgl.Map | null>(null);
   const navigationControlRef = React.useRef<mapboxgl.NavigationControl | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [currentLocation, setCurrentLocation] = React.useState<{ lat: number; lng: number }>({
     lat: 37.0902,
     lng: -95.7129,
@@ -29,6 +32,57 @@ export function WeatherMap({ className }: WeatherMapProps) {
     lng: currentLocation.lng,
   });
 
+  const handleLocationChange = React.useCallback((lat: number, lng: number) => {
+    setCurrentLocation({ lat, lng });
+    if (onLocationChange) {
+      onLocationChange(lat, lng);
+    }
+  }, [onLocationChange]);
+
+  const handleSearch = React.useCallback(async () => {
+    if (!searchQuery.trim()) return;
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          searchQuery
+        )}.json?access_token=${mapboxgl.accessToken}`
+      );
+      
+      if (!response.ok) throw new Error('Failed to search location');
+      
+      const data = await response.json();
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        handleLocationChange(lat, lng);
+        
+        if (mapRef.current) {
+          mapRef.current.flyTo({
+            center: [lng, lat],
+            zoom: 12
+          });
+        }
+        
+        toast({
+          title: "Location found",
+          description: `Showing weather for ${data.features[0].place_name}`,
+        });
+      } else {
+        toast({
+          title: "Location not found",
+          description: "Please try a different search term",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Search Error",
+        description: "Failed to search location. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [searchQuery, handleLocationChange, toast]);
+
   const handleLocationRequest = React.useCallback(() => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -36,7 +90,7 @@ export function WeatherMap({ className }: WeatherMapProps) {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-        setCurrentLocation(newLocation);
+        handleLocationChange(newLocation.lat, newLocation.lng);
         if (mapRef.current) {
           mapRef.current.flyTo({
             center: [newLocation.lng, newLocation.lat],
@@ -52,12 +106,12 @@ export function WeatherMap({ className }: WeatherMapProps) {
         });
       }
     );
-  }, [toast]);
+  }, [handleLocationChange, toast]);
 
   const handleMapClick = React.useCallback((e: mapboxgl.MapMouseEvent) => {
     const { lng, lat } = e.lngLat;
-    setCurrentLocation({ lat, lng });
-  }, []);
+    handleLocationChange(lat, lng);
+  }, [handleLocationChange]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -65,7 +119,6 @@ export function WeatherMap({ className }: WeatherMapProps) {
     const initializeMap = async () => {
       if (!isReady || !mapContainer.current || !isMounted) return;
 
-      // Cleanup existing instances
       if (mapRef.current) {
         mapRef.current.off('click', handleMapClick);
         if (navigationControlRef.current) {
@@ -76,10 +129,9 @@ export function WeatherMap({ className }: WeatherMapProps) {
         mapRef.current = null;
       }
 
-      // Initialize new map
       const map = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
         center: [currentLocation.lng, currentLocation.lat],
         zoom: 4
       });
@@ -91,12 +143,10 @@ export function WeatherMap({ className }: WeatherMapProps) {
 
       mapRef.current = map;
 
-      // Add navigation control
       const navControl = new mapboxgl.NavigationControl();
       navigationControlRef.current = navControl;
       map.addControl(navControl, 'top-right');
 
-      // Add click handler
       map.on('click', handleMapClick);
 
       return () => {
@@ -134,13 +184,26 @@ export function WeatherMap({ className }: WeatherMapProps) {
     >
       <div className="space-y-4">
         <div className="flex gap-2">
+          <div className="flex-1">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Search for a city..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <Button onClick={handleSearch} variant="outline">
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           <Button 
             onClick={handleLocationRequest}
             variant="outline"
-            className="w-full sm:w-auto"
+            className="whitespace-nowrap"
           >
             <MapPin className="mr-2 h-4 w-4" />
-            Go to My Location
+            My Location
           </Button>
         </div>
         

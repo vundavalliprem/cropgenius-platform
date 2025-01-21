@@ -8,7 +8,11 @@ import { DailyForecast } from "@/components/weather/DailyForecast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Weather() {
-  const defaultLocation = { lat: 37.0902, lng: -95.7129 };
+  const [currentLocation, setCurrentLocation] = React.useState({ lat: 37.0902, lng: -95.7129 });
+
+  const handleLocationChange = (lat: number, lng: number) => {
+    setCurrentLocation({ lat, lng });
+  };
 
   return (
     <DashboardLayout>
@@ -30,15 +34,15 @@ export default function Weather() {
           </TabsList>
           
           <TabsContent value="current" className="space-y-4">
-            <WeatherMap />
+            <WeatherMap onLocationChange={handleLocationChange} />
           </TabsContent>
           
           <TabsContent value="hourly" className="space-y-4">
-            <HourlyForecast {...defaultLocation} />
+            <HourlyForecast {...currentLocation} />
           </TabsContent>
           
           <TabsContent value="daily" className="space-y-4">
-            <DailyForecast {...defaultLocation} />
+            <DailyForecast {...currentLocation} />
           </TabsContent>
           
           <TabsContent value="alerts" className="space-y-4">
