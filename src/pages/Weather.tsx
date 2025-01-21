@@ -46,11 +46,11 @@ export default function Weather() {
           </TabsContent>
           
           <TabsContent value="alerts" className="space-y-4">
-            <WeatherAlerts />
+            <WeatherAlerts {...currentLocation} />
           </TabsContent>
           
           <TabsContent value="seasonal" className="space-y-4">
-            <SeasonalForecast />
+            <SeasonalForecast {...currentLocation} />
           </TabsContent>
         </Tabs>
       </div>

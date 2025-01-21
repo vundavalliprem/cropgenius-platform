@@ -1,32 +1,59 @@
 import React from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CloudRain, Wind, Sun } from "lucide-react";
+import { AlertCircle, CloudRain, Wind, Sun, Thermometer } from "lucide-react";
+import { useWeatherData } from '@/services/openWeather';
 
-export function WeatherAlerts() {
-  const alerts = [
-    {
-      id: 1,
-      type: 'warning',
-      title: 'Heavy Rain Expected',
-      description: 'Consider postponing outdoor activities. Expected rainfall: 2-3 inches.',
-      icon: CloudRain,
-    },
-    {
-      id: 2,
-      type: 'info',
-      title: 'Strong Winds',
-      description: 'Wind speeds of 15-20 mph expected. Secure loose equipment.',
-      icon: Wind,
-    },
-    {
-      id: 3,
-      type: 'warning',
-      title: 'High UV Index',
-      description: 'UV index will be high between 10 AM and 4 PM. Take necessary precautions.',
-      icon: Sun,
-    },
-  ];
+interface WeatherAlertsProps {
+  lat: number;
+  lng: number;
+}
+
+export function WeatherAlerts({ lat, lng }: WeatherAlertsProps) {
+  const { data: weatherData } = useWeatherData({ lat, lng });
+
+  const getAlerts = () => {
+    const alerts = [];
+    
+    if (weatherData) {
+      if (weatherData.temp > 30) {
+        alerts.push({
+          id: 1,
+          type: 'warning',
+          title: 'High Temperature Alert',
+          description: 'Temperature exceeds 30°C. Consider additional irrigation for crops.',
+          icon: Thermometer,
+        });
+      }
+
+      if (weatherData.windSpeed > 10) {
+        alerts.push({
+          id: 2,
+          type: 'warning',
+          title: 'Strong Winds',
+          description: `Wind speeds of ${weatherData.windSpeed.toFixed(1)} m/s detected. Secure loose equipment and monitor crop stress.`,
+          icon: Wind,
+        });
+      }
+
+      // Add more weather-based alerts as needed
+    }
+
+    // Add default alert if no specific conditions are met
+    if (alerts.length === 0) {
+      alerts.push({
+        id: 3,
+        type: 'default',
+        title: 'Normal Conditions',
+        description: 'No severe weather alerts at this time. Continue regular farming operations.',
+        icon: Sun,
+      });
+    }
+
+    return alerts;
+  };
+
+  const alerts = getAlerts();
 
   return (
     <Card title="Weather Alerts" description="AI-powered weather alerts and recommendations">

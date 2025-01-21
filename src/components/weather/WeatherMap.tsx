@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useWeatherData } from '@/services/openWeather';
-import { AlertCircle, MapPin, Search } from 'lucide-react';
+import { AlertCircle, MapPin, Search, Star } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FavoriteCities } from './FavoriteCities';
+import { supabase } from "@/integrations/supabase/client";
 import mapboxgl from 'mapbox-gl';
 
 interface WeatherMapProps {
@@ -20,7 +22,11 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
   const mapRef = React.useRef<mapboxgl.Map | null>(null);
   const navigationControlRef = React.useRef<mapboxgl.NavigationControl | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [currentLocation, setCurrentLocation] = React.useState<{ lat: number; lng: number }>({
+  const [currentLocation, setCurrentLocation] = React.useState<{ 
+    lat: number; 
+    lng: number;
+    cityName?: string;
+  }>({
     lat: 37.0902,
     lng: -95.7129,
   });
@@ -32,8 +38,8 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
     lng: currentLocation.lng,
   });
 
-  const handleLocationChange = React.useCallback((lat: number, lng: number) => {
-    setCurrentLocation({ lat, lng });
+  const handleLocationChange = React.useCallback((lat: number, lng: number, cityName?: string) => {
+    setCurrentLocation({ lat, lng, cityName });
     if (onLocationChange) {
       onLocationChange(lat, lng);
     }
@@ -54,7 +60,8 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
       const data = await response.json();
       if (data.features && data.features.length > 0) {
         const [lng, lat] = data.features[0].center;
-        handleLocationChange(lat, lng);
+        const cityName = data.features[0].place_name;
+        handleLocationChange(lat, lng, cityName);
         
         if (mapRef.current) {
           mapRef.current.flyTo({
@@ -65,7 +72,7 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
         
         toast({
           title: "Location found",
-          description: `Showing weather for ${data.features[0].place_name}`,
+          description: `Showing weather for ${cityName}`,
         });
       } else {
         toast({
@@ -82,6 +89,40 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
       });
     }
   }, [searchQuery, handleLocationChange, toast]);
+
+  const handleAddToFavorites = async () => {
+    if (!currentLocation.cityName) {
+      toast({
+        title: "Error",
+        description: "Please search for a city first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('favorite_cities')
+        .insert({
+          city_name: currentLocation.cityName,
+          lat: currentLocation.lat,
+          lng: currentLocation.lng,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "City added to favorites",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add city to favorites",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleLocationRequest = React.useCallback(() => {
     navigator.geolocation.getCurrentPosition(
@@ -195,6 +236,11 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
               <Button onClick={handleSearch} variant="outline">
                 <Search className="h-4 w-4" />
               </Button>
+              {currentLocation.cityName && (
+                <Button onClick={handleAddToFavorites} variant="outline">
+                  <Star className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
           <Button 
@@ -205,6 +251,19 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
             <MapPin className="mr-2 h-4 w-4" />
             My Location
           </Button>
+        </div>
+
+        <div className="bg-muted p-4 rounded-lg">
+          <h3 className="font-medium mb-2">Favorite Cities</h3>
+          <FavoriteCities onCitySelect={(lat, lng, cityName) => {
+            handleLocationChange(lat, lng, cityName);
+            if (mapRef.current) {
+              mapRef.current.flyTo({
+                center: [lng, lat],
+                zoom: 12
+              });
+            }
+          }} />
         </div>
         
         {weatherError && (
