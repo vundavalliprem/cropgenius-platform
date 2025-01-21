@@ -26,10 +26,11 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         mapRef.current = null;
       }
 
-      // Create new map instance
+      // Create new map instance with a style that includes labels
       const map = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
+        // Using streets-satellite-v12 style which includes terrain and labels
+        style: 'mapbox://styles/mapbox/streets-satellite-v12',
         center: [-95.7129, 37.0902],
         zoom: 15,
       });
