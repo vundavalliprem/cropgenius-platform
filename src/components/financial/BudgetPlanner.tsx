@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 const COLORS = ["#2D5A27", "#557751", "#8BA888", "#C5D9C3", "#E8F1E7", "#F5F9F4"];
 
@@ -17,6 +18,8 @@ interface BudgetPlannerProps {
 }
 
 export function BudgetPlanner({ className }: BudgetPlannerProps) {
+  const { toast } = useToast();
+  
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['expenses-by-category'],
     queryFn: async () => {
@@ -25,7 +28,14 @@ export function BudgetPlanner({ className }: BudgetPlannerProps) {
         .select('*')
         .eq('type', 'expense');
       
-      if (error) throw error;
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch expense records",
+          variant: "destructive",
+        });
+        throw error;
+      }
 
       const categoryTotals = data.reduce((acc: Record<string, number>, record) => {
         acc[record.category] = (acc[record.category] || 0) + record.amount;

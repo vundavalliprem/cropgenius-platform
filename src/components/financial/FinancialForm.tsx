@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { format } from "date-fns";
 
 const CATEGORIES = {
   expense: [
@@ -28,12 +29,29 @@ const CATEGORIES = {
   ]
 };
 
+const SUGGESTIONS = {
+  seeds: ["Winter Wheat Seeds", "Corn Seeds", "Soybean Seeds"],
+  fertilizer: ["NPK Fertilizer", "Organic Compost", "Nitrogen Supplement"],
+  equipment: ["Tractor Maintenance", "New Tools", "Equipment Repair"],
+  labor: ["Seasonal Workers", "Harvesting Labor", "Field Maintenance"],
+  sales: ["Wheat Sale", "Corn Sale", "Soybean Sale"],
+  subsidies: ["Government Subsidy", "Agricultural Grant", "Environmental Payment"],
+  other: ["Miscellaneous Expense", "Other Cost", "Additional Income"]
+};
+
 export function FinancialForm() {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [type, setType] = useState("expense");
   const [description, setDescription] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (category) {
+      setSuggestions(SUGGESTIONS[category as keyof typeof SUGGESTIONS] || []);
+    }
+  }, [category]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,12 +150,27 @@ export function FinancialForm() {
 
         <div>
           <label className="text-sm font-medium text-primary-600">Description</label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter description"
-            className="mt-1"
-          />
+          <div className="relative">
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter description"
+              className="mt-1"
+            />
+            {suggestions.length > 0 && description === "" && (
+              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
+                {suggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                    onClick={() => setDescription(suggestion)}
+                  >
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <Button type="submit" className="w-full gap-2">

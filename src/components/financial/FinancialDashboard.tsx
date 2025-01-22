@@ -5,12 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function FinancialDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  const { toast } = useToast();
 
   const { data: financialData, isLoading } = useQuery({
-    queryKey: ['financial-records', selectedCategory],
+    queryKey: ['financial-records', selectedCategory, selectedMonth],
     queryFn: async () => {
       let query = supabase
         .from('financial_records')
@@ -20,22 +23,37 @@ export function FinancialDashboard() {
       if (selectedCategory !== "all") {
         query = query.eq('category', selectedCategory);
       }
+
+      if (selectedMonth) {
+        const startDate = `${selectedMonth}-01`;
+        const endDate = `${selectedMonth}-31`;
+        query = query.gte('record_date', startDate).lte('record_date', endDate);
+      }
       
       const { data, error } = await query;
-      if (error) throw error;
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch financial records",
+          variant: "destructive",
+        });
+        throw error;
+      }
+      
       return data;
     }
   });
 
   const chartData = financialData?.reduce((acc: any[], record) => {
-    const month = format(new Date(record.record_date), 'MMM');
-    const existingMonth = acc.find(item => item.month === month);
+    const date = format(new Date(record.record_date), 'MMM dd');
+    const existingDate = acc.find(item => item.date === date);
     
-    if (existingMonth) {
-      existingMonth[record.type] = (existingMonth[record.type] || 0) + record.amount;
+    if (existingDate) {
+      existingDate[record.type] = (existingDate[record.type] || 0) + record.amount;
     } else {
       acc.push({
-        month,
+        date,
         [record.type]: record.amount,
       });
     }
@@ -43,7 +61,14 @@ export function FinancialDashboard() {
     return acc;
   }, []) || [];
 
-  const categories = ["all", "seeds", "fertilizer", "equipment", "labor", "sales", "other"];
+  const categories = ["all", "seeds", "fertilizer", "equipment", "labor", "sales", "subsidies", "other"];
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const date = new Date(new Date().getFullYear(), i, 1);
+    return {
+      value: format(date, 'yyyy-MM'),
+      label: format(date, 'MMMM yyyy')
+    };
+  });
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -52,27 +77,45 @@ export function FinancialDashboard() {
   return (
     <Card title="Income vs Expenses" description="Monthly financial overview">
       <div className="space-y-4">
-        <div className="w-48">
-          <label className="text-sm font-medium text-primary-600">Filter by Category</label>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="mt-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-primary-600">Filter by Category</label>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-primary-600">Filter by Month</label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map(month => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+              <XAxis dataKey="date" />
               <YAxis />
               <Tooltip formatter={(value) => `$${value}`} />
               <Legend />
