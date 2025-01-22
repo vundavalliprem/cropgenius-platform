@@ -5,6 +5,13 @@
   text-align: center;
 }
 
+@media (max-width: 640px) {
+  #root {
+    padding: 0;
+    max-width: 100%;
+  }
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -39,4 +46,28 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Ensure dropdowns don't overlap */
+.select-content {
+  z-index: 50;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Ensure map containers are full width on mobile */
+.map-container {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+}
+
+@media (min-width: 640px) {
+  .map-container {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
 }

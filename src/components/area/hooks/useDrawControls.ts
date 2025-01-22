@@ -28,10 +28,47 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
         const area = turf.area(data);
         const multiplier = UNITS[selectedUnit].multiplier;
         onAreaUpdate(Number((area * multiplier).toFixed(2)));
+
+        // Add line measurements
+        data.features.forEach(feature => {
+          if (feature.geometry.type === 'Polygon') {
+            const coordinates = feature.geometry.coordinates[0];
+            for (let i = 0; i < coordinates.length - 1; i++) {
+              const start = coordinates[i];
+              const end = coordinates[i + 1];
+              const line = turf.lineString([start, end]);
+              const length = turf.length(line, { units: 'kilometers' });
+              
+              // Add a marker at the midpoint of each line
+              const midpoint = turf.midpoint(
+                turf.point(start),
+                turf.point(end)
+              );
+
+              const displayLength = length >= 1 
+                ? `${length.toFixed(2)} km`
+                : `${(length * 1000).toFixed(0)} m`;
+
+              new mapboxgl.Marker({
+                element: createLengthLabel(displayLength),
+                anchor: 'center'
+              })
+                .setLngLat(midpoint.geometry.coordinates)
+                .addTo(mapRef.current!);
+            }
+          }
+        });
       } catch (error) {
         console.error('Error calculating area:', error);
         onAreaUpdate(null);
       }
+    };
+
+    const createLengthLabel = (text: string) => {
+      const el = document.createElement('div');
+      el.className = 'bg-white px-2 py-1 rounded shadow text-sm';
+      el.textContent = text;
+      return el;
     };
 
     // Initialize draw control

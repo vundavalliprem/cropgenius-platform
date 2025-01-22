@@ -7,11 +7,12 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 interface MapContainerProps {
   mapError: string | null;
   mapRef: React.RefObject<HTMLDivElement>;
+  className?: string;
 }
 
-export function MapContainer({ mapError, mapRef }: MapContainerProps) {
+export function MapContainer({ mapError, mapRef, className }: MapContainerProps) {
   return (
-    <div className="h-[600px] relative rounded-lg overflow-hidden shadow-lg">
+    <div className={`h-[600px] relative rounded-lg overflow-hidden shadow-lg ${className}`}>
       {mapError ? (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-red-500">
           {mapError}
