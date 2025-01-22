@@ -3,12 +3,34 @@ import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { HelpCircle, Plus } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const CATEGORIES = {
+  expense: [
+    { value: "seeds", label: "Seeds" },
+    { value: "fertilizer", label: "Fertilizer" },
+    { value: "equipment", label: "Equipment" },
+    { value: "labor", label: "Labor" },
+    { value: "other", label: "Other" }
+  ],
+  income: [
+    { value: "sales", label: "Crop Sales" },
+    { value: "subsidies", label: "Subsidies" },
+    { value: "other", label: "Other Income" }
+  ]
+};
 
 export function FinancialForm() {
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("seeds");
+  const [category, setCategory] = useState("");
   const [type, setType] = useState("expense");
   const [description, setDescription] = useState("");
   const { toast } = useToast();
@@ -35,8 +57,10 @@ export function FinancialForm() {
         description: "Financial record added successfully",
       });
 
+      // Reset form
       setAmount("");
       setDescription("");
+      setCategory("");
     } catch (error) {
       console.error('Error adding financial record:', error);
       toast({
@@ -50,32 +74,46 @@ export function FinancialForm() {
   return (
     <Card title="Add Financial Record" description="Record income or expenses">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-primary-600">Type</label>
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="expense">Expense</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-sm font-medium text-primary-600">Type</label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="expense">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Select whether this is an income or expense record</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div>
           <label className="text-sm font-medium text-primary-600">Category</label>
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="seeds">Seeds</SelectItem>
-              <SelectItem value="fertilizer">Fertilizer</SelectItem>
-              <SelectItem value="equipment">Equipment</SelectItem>
-              <SelectItem value="labor">Labor</SelectItem>
-              <SelectItem value="sales">Sales</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              {CATEGORIES[type as keyof typeof CATEGORIES].map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -88,6 +126,7 @@ export function FinancialForm() {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="Enter amount"
             required
+            className="mt-1"
           />
         </div>
 
@@ -97,10 +136,13 @@ export function FinancialForm() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Enter description"
+            className="mt-1"
           />
         </div>
 
-        <Button type="submit" className="w-full">Add Record</Button>
+        <Button type="submit" className="w-full gap-2">
+          <Plus className="h-4 w-4" /> Add Record
+        </Button>
       </form>
     </Card>
   );

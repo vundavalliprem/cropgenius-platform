@@ -2,6 +2,13 @@ import { Card } from "@/components/ui/dashboard/Card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { HelpCircle } from "lucide-react";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const COLORS = ["#2D5A27", "#557751", "#8BA888", "#C5D9C3", "#E8F1E7", "#F5F9F4"];
 
@@ -36,6 +43,8 @@ export function BudgetPlanner({ className }: BudgetPlannerProps) {
     return <div>Loading...</div>;
   }
 
+  const totalBudget = expenses?.reduce((sum, item) => sum + item.value, 0) || 0;
+
   return (
     <Card
       title="Budget Allocation"
@@ -66,7 +75,24 @@ export function BudgetPlanner({ className }: BudgetPlannerProps) {
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-semibold text-primary-600">Budget Summary</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-primary-600">Budget Summary</h3>
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Breakdown of expenses by category</p>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
+          
+          <div className="text-sm text-muted-foreground mb-4">
+            Total Budget: ${totalBudget.toLocaleString()}
+          </div>
+          
           {expenses?.map((item, index) => (
             <div key={item.name} className="flex items-center justify-between p-3 bg-primary-100 rounded-md">
               <div className="flex items-center gap-2">
@@ -76,7 +102,12 @@ export function BudgetPlanner({ className }: BudgetPlannerProps) {
                 />
                 <span className="font-medium capitalize">{item.name}</span>
               </div>
-              <span className="text-primary-600">${item.value.toLocaleString()}</span>
+              <div className="text-right">
+                <span className="text-primary-600">${item.value.toLocaleString()}</span>
+                <div className="text-xs text-muted-foreground">
+                  {((item.value / totalBudget) * 100).toFixed(1)}%
+                </div>
+              </div>
             </div>
           ))}
         </div>
