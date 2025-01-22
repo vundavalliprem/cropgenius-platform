@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { FinancialDashboard } from "@/components/financial/FinancialDashboard";
 import { ROICalculator } from "@/components/financial/ROICalculator";
 import { BudgetPlanner } from "@/components/financial/BudgetPlanner";
+import { FinancialForm } from "@/components/financial/FinancialForm";
 
 const FinancialPlanning = () => {
   return (
@@ -13,6 +14,7 @@ const FinancialPlanning = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FinancialForm />
           <FinancialDashboard />
           <ROICalculator />
           <BudgetPlanner className="lg:col-span-2" />
