@@ -41,8 +41,8 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
               
               // Add a marker at the midpoint of each line
               const midpoint = turf.midpoint(
-                turf.point(start),
-                turf.point(end)
+                turf.point(start as [number, number]),
+                turf.point(end as [number, number])
               );
 
               const displayLength = length >= 1 
@@ -53,7 +53,7 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
                 element: createLengthLabel(displayLength),
                 anchor: 'center'
               })
-                .setLngLat(midpoint.geometry.coordinates)
+                .setLngLat(midpoint.geometry.coordinates as [number, number])
                 .addTo(mapRef.current!);
             }
           }

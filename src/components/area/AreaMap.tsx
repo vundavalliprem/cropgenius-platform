@@ -1,4 +1,5 @@
 import React from 'react';
+import mapboxgl from 'mapbox-gl';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { useMapInitialization } from './hooks/useMapInitialization';
@@ -9,6 +10,7 @@ import { AreaDisplay } from './components/AreaDisplay';
 import { MapContainer } from './components/MapContainer';
 import { Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from "@/integrations/supabase/client";
 
 interface AreaMapProps {
   className?: string;
