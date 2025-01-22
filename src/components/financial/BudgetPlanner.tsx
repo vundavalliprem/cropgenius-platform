@@ -78,7 +78,7 @@ export function BudgetPlanner({ className }: BudgetPlannerProps) {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => ["$" + value.toLocaleString(), "Budget"]} />
+              <Tooltip formatter={(value) => ["₹" + value.toLocaleString(), "Budget"]} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -100,7 +100,7 @@ export function BudgetPlanner({ className }: BudgetPlannerProps) {
           </div>
           
           <div className="text-sm text-muted-foreground mb-4">
-            Total Budget: ${totalBudget.toLocaleString()}
+            Total Budget: ₹{totalBudget.toLocaleString()}
           </div>
           
           {expenses?.map((item, index) => (
@@ -113,7 +113,7 @@ export function BudgetPlanner({ className }: BudgetPlannerProps) {
                 <span className="font-medium capitalize">{item.name}</span>
               </div>
               <div className="text-right">
-                <span className="text-primary-600">${item.value.toLocaleString()}</span>
+                <span className="text-primary-600">₹{item.value.toLocaleString()}</span>
                 <div className="text-xs text-muted-foreground">
                   {((item.value / totalBudget) * 100).toFixed(1)}%
                 </div>

@@ -12,9 +12,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-const CATEGORIES = {
+const DEFAULT_CATEGORIES = {
   expense: [
     { value: "seeds", label: "Seeds" },
     { value: "fertilizer", label: "Fertilizer" },
@@ -45,7 +45,18 @@ export function FinancialForm() {
   const [type, setType] = useState("expense");
   const [description, setDescription] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<Record<string, { value: string; label: string }[]>>({
+    expense: [],
+    income: []
+  });
+  const [newCategory, setNewCategory] = useState("");
+  const [newCategoryType, setNewCategoryType] = useState("expense");
   const { toast } = useToast();
+
+  const categories = {
+    expense: [...DEFAULT_CATEGORIES.expense, ...customCategories.expense],
+    income: [...DEFAULT_CATEGORIES.income, ...customCategories.income]
+  };
 
   useEffect(() => {
     if (category) {
@@ -89,6 +100,23 @@ export function FinancialForm() {
     }
   };
 
+  const handleAddCategory = () => {
+    if (newCategory) {
+      setCustomCategories(prev => ({
+        ...prev,
+        [newCategoryType]: [
+          ...prev[newCategoryType as keyof typeof prev],
+          { value: newCategory.toLowerCase(), label: newCategory }
+        ]
+      }));
+      setNewCategory("");
+      toast({
+        title: "Success",
+        description: "New category added successfully",
+      });
+    }
+  };
+
   return (
     <Card title="Add Financial Record" description="Record income or expenses">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -120,24 +148,63 @@ export function FinancialForm() {
           </TooltipProvider>
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-primary-600">Category</label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES[type as keyof typeof CATEGORIES].map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  {cat.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium text-primary-600">Category</label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories[type as keyof typeof categories].map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="mt-6">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Category
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Category</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Category Type</label>
+                  <Select value={newCategoryType} onValueChange={setNewCategoryType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="income">Income</SelectItem>
+                      <SelectItem value="expense">Expense</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category Name</label>
+                  <Input
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    placeholder="Enter category name"
+                  />
+                </div>
+                <Button onClick={handleAddCategory}>Add Category</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-primary-600">Amount ($)</label>
+          <label className="text-sm font-medium text-primary-600">Amount (₹)</label>
           <Input
             type="number"
             value={amount}

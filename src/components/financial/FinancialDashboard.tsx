@@ -115,9 +115,14 @@ export function FinancialDashboard() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip formatter={(value) => `$${value}`} />
+              <XAxis 
+                dataKey="date" 
+                label={{ value: "Date", position: "bottom", offset: -5 }}
+              />
+              <YAxis 
+                label={{ value: "Amount (₹)", angle: -90, position: "left" }}
+              />
+              <Tooltip formatter={(value) => `₹${value}`} />
               <Legend />
               <Bar dataKey="income" fill="#2D5A27" name="Income" />
               <Bar dataKey="expense" fill="#8BA888" name="Expenses" />
