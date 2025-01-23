@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useMapInitialization } from '../area/hooks/useMapInitialization';
-import { calculateRoute, getTrafficIncidents, searchLocation, TomTomRoute } from '@/services/tomtom';
+import { calculateRoute, getTrafficIncidents, searchLocation } from '@/services/tomtom';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { LocationSearch } from '@/components/ui/location-search';
 
 interface LogisticsMapProps {
   className?: string;
@@ -199,18 +199,18 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="text-sm font-medium mb-1 block">Source Location</label>
-            <Input
-              placeholder="Enter source location"
+            <LocationSearch
               value={sourceLocation}
-              onChange={(e) => setSourceLocation(e.target.value)}
+              onChange={setSourceLocation}
+              placeholder="Enter source location"
             />
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Destination</label>
-            <Input
-              placeholder="Enter destination"
+            <LocationSearch
               value={destinationLocation}
-              onChange={(e) => setDestinationLocation(e.target.value)}
+              onChange={setDestinationLocation}
+              placeholder="Enter destination"
             />
           </div>
         </div>
