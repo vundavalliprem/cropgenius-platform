@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { LocationSearch } from '@/components/ui/location-search';
+import type { TomTomRoute } from '@/types/tomtom';
 
 interface LogisticsMapProps {
   className?: string;
@@ -253,3 +254,4 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
     </Card>
   );
 }
+
