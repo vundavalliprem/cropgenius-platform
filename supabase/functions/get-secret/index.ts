@@ -27,9 +27,20 @@ serve(async (req) => {
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .single()
+      .maybeSingle()
 
     if (error) throw error
+
+    // Handle case where no secret is found
+    if (!data) {
+      return new Response(
+        JSON.stringify({ error: `Secret '${name}' not found` }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        },
+      )
+    }
 
     return new Response(
       JSON.stringify({ [name]: data.value }),
@@ -39,6 +50,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in get-secret function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
