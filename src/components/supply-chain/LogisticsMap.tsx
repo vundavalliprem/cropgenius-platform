@@ -231,7 +231,7 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
             <div className="p-3 bg-accent rounded-lg">
               <p className="text-sm text-muted-foreground">Estimated Time</p>
               <p className="text-lg font-semibold">
-                {Math.round(route.departure.time / 60)} min
+                {Math.round(route.sections[0].summary.duration / 60)} min
               </p>
             </div>
             <div className="p-3 bg-accent rounded-lg">
