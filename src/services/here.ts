@@ -1,5 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface HereRoute {
+  sections: Array<{
+    summary: {
+      length: number;
+      duration: number;
+      trafficDelay?: number;
+    };
+    polyline: string;
+  }>;
+}
+
 async function getHereApiKey(): Promise<string> {
   try {
     const { data, error } = await supabase
