@@ -54,11 +54,11 @@ export async function calculateRoute(
   }
 }
 
-export async function searchLocation(query: string): Promise<{
+export async function searchLocation(query: string): Promise<Array<{
   lat: number;
   lng: number;
   address: string;
-} | null> {
+}>> {
   try {
     const { data: { TOMTOM_API_KEY }, error } = await supabase
       .functions.invoke('get-secret', {
@@ -67,14 +67,14 @@ export async function searchLocation(query: string): Promise<{
 
     if (error || !TOMTOM_API_KEY) {
       console.error('Failed to get TomTom API key:', error);
-      return null;
+      return [];
     }
 
     const response = await fetch(
       `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json?` +
       new URLSearchParams({
         key: TOMTOM_API_KEY,
-        limit: '1',
+        limit: '5',
       })
     );
 
@@ -84,17 +84,16 @@ export async function searchLocation(query: string): Promise<{
 
     const data = await response.json();
     if (data.results && data.results.length > 0) {
-      const result = data.results[0];
-      return {
+      return data.results.map((result: any) => ({
         lat: result.position.lat,
         lng: result.position.lon,
         address: result.address.freeformAddress,
-      };
+      }));
     }
-    return null;
+    return [];
   } catch (error) {
     console.error('Error searching location:', error);
-    return null;
+    return [];
   }
 }
 
