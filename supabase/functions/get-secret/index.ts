@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,56 +13,51 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    )
-
     const { name } = await req.json()
-    console.log('Fetching secret:', name)
     
     if (!name) {
       throw new Error('Secret name is required')
     }
 
-    const { data, error } = await supabaseClient
+    // Get the secret from Supabase
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { data, error } = await supabase
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .maybeSingle()
+      .single()
 
-    if (error) {
-      console.error('Database error:', error)
-      throw error
+    if (error || !data) {
+      throw new Error(`Secret '${name}' not found`)
     }
 
-    if (!data) {
-      console.error(`Secret '${name}' not found`)
-      return new Response(
-        JSON.stringify({ error: `Secret '${name}' not found` }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404,
-        },
-      )
-    }
-
-    console.log(`Successfully retrieved secret: ${name}`)
     return new Response(
-      JSON.stringify({ [name]: data.value }),
+      JSON.stringify({ 
+        [name]: data.value 
+      }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        } 
+      }
     )
   } catch (error) {
-    console.error('Error in get-secret function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message 
+      }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      },
+        status: 404,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 })
