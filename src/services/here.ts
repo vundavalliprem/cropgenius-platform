@@ -12,17 +12,22 @@ export interface HereRoute {
 }
 
 async function getHereApiKey(): Promise<string> {
-  const { data: { HERE_API_KEY }, error } = await supabase
-    .functions.invoke('get-secret', {
-      body: { name: 'HERE_API_KEY' }
-    });
+  try {
+    const { data, error } = await supabase
+      .functions.invoke('get-secret', {
+        body: { name: 'HERE_API_KEY' }
+      });
 
-  if (error || !HERE_API_KEY) {
-    console.error('Failed to get HERE API key:', error);
-    throw new Error('Failed to get HERE API key');
+    if (error || !data?.HERE_API_KEY) {
+      console.error('Failed to get HERE API key:', error);
+      throw new Error('Failed to get HERE API key');
+    }
+
+    return data.HERE_API_KEY;
+  } catch (error) {
+    console.error('Error getting HERE API key:', error);
+    throw error;
   }
-
-  return HERE_API_KEY;
 }
 
 export async function searchLocation(query: string): Promise<Array<{
@@ -30,6 +35,10 @@ export async function searchLocation(query: string): Promise<Array<{
   lng: number;
   address: string;
 }>> {
+  if (!query?.trim()) {
+    return [];
+  }
+
   try {
     const apiKey = await getHereApiKey();
     

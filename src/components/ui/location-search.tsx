@@ -13,7 +13,7 @@ interface LocationSearchProps {
 }
 
 export function LocationSearch({ value, onChange, placeholder = "Search location...", className }: LocationSearchProps) {
-  const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{
     lat: number;
     lng: number;
@@ -27,9 +27,18 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
       return;
     }
 
+    setIsLoading(true);
     try {
       const results = await searchLocation(search);
       setSearchResults(results || []);
+      
+      if (results.length === 0) {
+        toast({
+          title: "No results found",
+          description: "Try a different search term",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Error searching location:', error);
       toast({
@@ -38,6 +47,8 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
         variant: "destructive",
       });
       setSearchResults([]);
+    } finally {
+      setIsLoading(false);
     }
   }, [toast]);
 
@@ -60,6 +71,11 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
           placeholder={placeholder}
         />
       </div>
+      {isLoading && (
+        <div className="p-4 text-center text-sm text-muted-foreground">
+          Searching...
+        </div>
+      )}
       {searchResults.length > 0 && (
         <div className="absolute mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
           {searchResults.map((result, index) => (

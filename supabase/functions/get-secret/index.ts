@@ -7,9 +7,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -32,6 +31,7 @@ serve(async (req) => {
       .single()
 
     if (error || !data) {
+      console.error(`Secret '${name}' not found:`, error)
       throw new Error(`Secret '${name}' not found`)
     }
 
@@ -47,6 +47,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('Error in get-secret function:', error)
     return new Response(
       JSON.stringify({ 
         error: error.message 
