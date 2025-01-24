@@ -91,16 +91,18 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
     setIsLoading(true);
     try {
       // Search for source location coordinates
-      const sourceCoords = await searchLocation(sourceLocation);
-      if (!sourceCoords) {
+      const sourceResults = await searchLocation(sourceLocation);
+      if (!sourceResults.length) {
         throw new Error('Could not find source location');
       }
+      const sourceCoords = sourceResults[0];
 
       // Search for destination location coordinates
-      const destCoords = await searchLocation(destinationLocation);
-      if (!destCoords) {
+      const destResults = await searchLocation(destinationLocation);
+      if (!destResults.length) {
         throw new Error('Could not find destination location');
       }
+      const destCoords = destResults[0];
 
       // Calculate route between the points
       const routeData = await calculateRoute(
@@ -254,4 +256,3 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
     </Card>
   );
 }
-
