@@ -16,42 +16,18 @@ export interface TomTomRoute {
   }>;
 }
 
-export async function calculateRoute(
-  startLat: number,
-  startLng: number,
-  endLat: number,
-  endLng: number
-): Promise<TomTomRoute | null> {
-  try {
-    const { data: { TOMTOM_API_KEY }, error } = await supabase
-      .functions.invoke('get-secret', {
-        body: { name: 'TOMTOM_API_KEY' }
-      });
+async function getTomTomApiKey(): Promise<string> {
+  const { data: { TOMTOM_API_KEY }, error } = await supabase
+    .functions.invoke('get-secret', {
+      body: { name: 'TOMTOM_API_KEY' }
+    });
 
-    if (error || !TOMTOM_API_KEY) {
-      console.error('Failed to get TomTom API key:', error);
-      return null;
-    }
-
-    const response = await fetch(
-      `https://api.tomtom.com/routing/1/calculateRoute/${startLat},${startLng}:${endLat},${endLng}/json?` +
-      new URLSearchParams({
-        key: TOMTOM_API_KEY,
-        traffic: 'true',
-        travelMode: 'truck',
-      })
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to calculate route');
-    }
-
-    const data = await response.json();
-    return data.routes[0];
-  } catch (error) {
-    console.error('Error calculating route:', error);
-    return null;
+  if (error || !TOMTOM_API_KEY) {
+    console.error('Failed to get TomTom API key:', error);
+    throw new Error('Failed to get TomTom API key');
   }
+
+  return TOMTOM_API_KEY;
 }
 
 export async function searchLocation(query: string): Promise<Array<{
@@ -60,20 +36,12 @@ export async function searchLocation(query: string): Promise<Array<{
   address: string;
 }>> {
   try {
-    const { data: { TOMTOM_API_KEY }, error } = await supabase
-      .functions.invoke('get-secret', {
-        body: { name: 'TOMTOM_API_KEY' }
-      });
-
-    if (error || !TOMTOM_API_KEY) {
-      console.error('Failed to get TomTom API key:', error);
-      return [];
-    }
-
+    const apiKey = await getTomTomApiKey();
+    
     const response = await fetch(
       `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json?` +
       new URLSearchParams({
-        key: TOMTOM_API_KEY,
+        key: apiKey,
         limit: '5',
       })
     );
@@ -97,26 +65,48 @@ export async function searchLocation(query: string): Promise<Array<{
   }
 }
 
+export async function calculateRoute(
+  startLat: number,
+  startLng: number,
+  endLat: number,
+  endLng: number
+): Promise<TomTomRoute | null> {
+  try {
+    const apiKey = await getTomTomApiKey();
+
+    const response = await fetch(
+      `https://api.tomtom.com/routing/1/calculateRoute/${startLat},${startLng}:${endLat},${endLng}/json?` +
+      new URLSearchParams({
+        key: apiKey,
+        traffic: 'true',
+        travelMode: 'truck',
+      })
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to calculate route');
+    }
+
+    const data = await response.json();
+    return data.routes[0];
+  } catch (error) {
+    console.error('Error calculating route:', error);
+    return null;
+  }
+}
+
 export async function getTrafficIncidents(
   lat: number,
   lng: number,
   radius: number
 ): Promise<any[]> {
   try {
-    const { data: { TOMTOM_API_KEY }, error } = await supabase
-      .functions.invoke('get-secret', {
-        body: { name: 'TOMTOM_API_KEY' }
-      });
-
-    if (error || !TOMTOM_API_KEY) {
-      console.error('Failed to get TomTom API key:', error);
-      return [];
-    }
+    const apiKey = await getTomTomApiKey();
 
     const response = await fetch(
       `https://api.tomtom.com/traffic/services/4/incidentDetails/s3/${lat},${lng}/${radius}.json?` +
       new URLSearchParams({
-        key: TOMTOM_API_KEY,
+        key: apiKey,
         language: 'en-US',
       })
     );
