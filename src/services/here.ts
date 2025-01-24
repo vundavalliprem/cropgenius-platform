@@ -26,7 +26,7 @@ async function getHereApiKey(): Promise<string> {
     return data.HERE_API_KEY;
   } catch (error) {
     console.error('Error getting HERE API key:', error);
-    throw error;
+    throw new Error('Failed to get HERE API key. Please make sure the API key is configured.');
   }
 }
 
@@ -43,7 +43,13 @@ export async function searchLocation(query: string): Promise<Array<{
     const apiKey = await getHereApiKey();
     
     const response = await fetch(
-      `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query)}&apiKey=${apiKey}`
+      `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query)}&apiKey=${apiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
     );
 
     if (!response.ok) {
@@ -63,7 +69,7 @@ export async function searchLocation(query: string): Promise<Array<{
     }));
   } catch (error) {
     console.error('Error searching location:', error);
-    return [];
+    throw error;
   }
 }
 

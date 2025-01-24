@@ -30,7 +30,7 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
       const results = await searchLocation(search);
       setSearchResults(results || []);
       
-      if (results.length === 0) {
+      if (!results || results.length === 0) {
         toast({
           title: "No results found",
           description: "Try a different search term",
@@ -66,21 +66,22 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
           Searching...
         </div>
       )}
-      {searchResults.length > 0 && (
-        <div className="absolute mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
+      {searchResults && searchResults.length > 0 && (
+        <Command.List className="absolute mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
           {searchResults.map((result, index) => (
-            <div
+            <Command.Item
               key={index}
-              className="cursor-pointer p-2 hover:bg-accent hover:text-accent-foreground rounded-sm text-sm"
-              onClick={() => {
+              value={result.address}
+              onSelect={() => {
                 onChange(result.address);
                 setSearchResults([]);
               }}
+              className="cursor-pointer p-2 hover:bg-accent hover:text-accent-foreground rounded-sm text-sm"
             >
               {result.address}
-            </div>
+            </Command.Item>
           ))}
-        </div>
+        </Command.List>
       )}
     </Command>
   );
