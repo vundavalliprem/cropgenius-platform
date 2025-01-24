@@ -41,18 +41,11 @@ export async function searchLocation(query: string): Promise<Array<{
 
   try {
     const apiKey = await getHereApiKey();
-    
-    // Create a simple URL object instead of using Request
     const url = new URL('https://geocode.search.hereapi.com/v1/geocode');
     url.searchParams.append('q', query);
     url.searchParams.append('apiKey', apiKey);
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      }
-    });
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       throw new Error('Failed to search location');
@@ -83,8 +76,6 @@ export async function calculateRoute(
 ): Promise<HereRoute | null> {
   try {
     const apiKey = await getHereApiKey();
-
-    // Create a simple URL object instead of using Request
     const url = new URL('https://router.hereapi.com/v8/routes');
     url.searchParams.append('transportMode', 'car');
     url.searchParams.append('origin', `${startLat},${startLng}`);
@@ -113,8 +104,6 @@ export async function getTrafficIncidents(
 ): Promise<any[]> {
   try {
     const apiKey = await getHereApiKey();
-
-    // Create a simple URL object instead of using Request
     const url = new URL('https://traffic.ls.hereapi.com/traffic/6.2/incidents.json');
     url.searchParams.append('apiKey', apiKey);
     url.searchParams.append('prox', `${lat},${lng},${radius}`);
