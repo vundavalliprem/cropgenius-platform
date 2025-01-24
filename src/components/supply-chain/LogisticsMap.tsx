@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useMapInitialization } from '../area/hooks/useMapInitialization';
-import { calculateRoute, getTrafficIncidents, searchLocation } from '@/services/tomtom';
+import { calculateRoute, getTrafficIncidents, searchLocation } from '@/services/here';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { LocationSearch } from '@/components/ui/location-search';
-import type { TomTomRoute } from '@/types/tomtom';
+import type { HereRoute } from '@/services/here';
 
 interface LogisticsMapProps {
   className?: string;
@@ -20,7 +20,7 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const { isReady, error } = useMapInitialization();
   const { toast } = useToast();
-  const [route, setRoute] = useState<TomTomRoute | null>(null);
+  const [route, setRoute] = useState<HereRoute | null>(null);
   const [sourceLocation, setSourceLocation] = useState('');
   const [destinationLocation, setDestinationLocation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -118,11 +118,11 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
 
       setRoute(routeData);
 
-      // Update route on map
-      const coordinates = routeData.legs[0].points.map(point => [
-        point.longitude,
-        point.latitude
-      ]);
+      // Decode and update route on map
+      const coordinates = routeData.sections[0].polyline.split(',').map(coord => {
+        const [lat, lng] = coord.split(':');
+        return [parseFloat(lng), parseFloat(lat)];
+      });
 
       routeRef.current.setData({
         type: 'Feature',
@@ -164,11 +164,11 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
 
       incidents.forEach(incident => {
         const marker = new mapboxgl.Marker({ color: '#f59e0b' })
-          .setLngLat([incident.point.lng, incident.point.lat])
+          .setLngLat([incident.LOCATION.GEOLOC.LONGITUDE, incident.LOCATION.GEOLOC.LATITUDE])
           .setPopup(new mapboxgl.Popup().setHTML(
             `<div class="p-2">
-              <h3 class="font-medium">${incident.type}</h3>
-              <p class="text-sm">${incident.description}</p>
+              <h3 class="font-medium">${incident.TRAFFIC_ITEM_TYPE_DESC}</h3>
+              <p class="text-sm">${incident.TRAFFIC_ITEM_DESCRIPTION?.[0]?.value || 'No description available'}</p>
             </div>`
           ))
           .addTo(mapRef.current!);
@@ -231,13 +231,13 @@ export function LogisticsMap({ className }: LogisticsMapProps) {
             <div className="p-3 bg-accent rounded-lg">
               <p className="text-sm text-muted-foreground">Estimated Time</p>
               <p className="text-lg font-semibold">
-                {Math.round(route.summary.travelTimeInSeconds / 60)} min
+                {Math.round(route.departure.time / 60)} min
               </p>
             </div>
             <div className="p-3 bg-accent rounded-lg">
               <p className="text-sm text-muted-foreground">Distance</p>
               <p className="text-lg font-semibold">
-                {(route.summary.lengthInMeters / 1000).toFixed(1)} km
+                {(route.sections[0].summary.length / 1000).toFixed(1)} km
               </p>
             </div>
           </div>
