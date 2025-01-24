@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -18,6 +19,7 @@ serve(async (req) => {
     )
 
     const { name } = await req.json()
+    console.log('Fetching secret:', name)
     
     if (!name) {
       throw new Error('Secret name is required')
@@ -29,10 +31,14 @@ serve(async (req) => {
       .eq('name', name)
       .maybeSingle()
 
-    if (error) throw error
+    if (error) {
+      console.error('Database error:', error)
+      throw error
+    }
 
     // Handle case where no secret is found
     if (!data) {
+      console.error(`Secret '${name}' not found`)
       return new Response(
         JSON.stringify({ error: `Secret '${name}' not found` }),
         { 
@@ -42,6 +48,7 @@ serve(async (req) => {
       )
     }
 
+    console.log(`Successfully retrieved secret: ${name}`)
     return new Response(
       JSON.stringify({ [name]: data.value }),
       { 
