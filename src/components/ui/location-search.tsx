@@ -27,6 +27,11 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
 
     try {
       const results = await searchLocation(search);
+      if (!results || !Array.isArray(results)) {
+        setSuggestions([]);
+        return;
+      }
+      
       setSuggestions(
         results.map(location => ({
           value: location.address,
