@@ -68,7 +68,7 @@ export async function calculateRoute(
     const apiKey = await getHereApiKey();
 
     const response = await fetch(
-      `https://router.hereapi.com/v8/routes?transportMode=truck&origin=${startLat},${startLng}&destination=${endLat},${endLng}&return=polyline,summary&apiKey=${apiKey}`
+      `https://router.hereapi.com/v8/routes?transportMode=car&origin=${startLat},${startLng}&destination=${endLat},${endLng}&return=polyline,summary&apiKey=${apiKey}`
     );
 
     if (!response.ok) {

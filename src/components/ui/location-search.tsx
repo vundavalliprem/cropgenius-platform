@@ -1,10 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Command } from "cmdk";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
 import { searchLocation } from '@/services/here';
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface LocationSearchProps {
@@ -14,32 +12,24 @@ interface LocationSearchProps {
   className?: string;
 }
 
-export function LocationSearch({ value, onChange, placeholder, className }: LocationSearchProps) {
+export function LocationSearch({ value, onChange, placeholder = "Search location...", className }: LocationSearchProps) {
   const [open, setOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<Array<{ value: string; label: string }>>([]);
+  const [searchResults, setSearchResults] = useState<Array<{
+    lat: number;
+    lng: number;
+    address: string;
+  }>>([]);
   const { toast } = useToast();
 
   const handleSearch = useCallback(async (search: string) => {
     if (!search.trim()) {
-      setSuggestions([]);
+      setSearchResults([]);
       return;
     }
 
     try {
       const results = await searchLocation(search);
-      
-      // Ensure results is an array and has items before mapping
-      if (!results || !Array.isArray(results) || results.length === 0) {
-        setSuggestions([]);
-        return;
-      }
-      
-      setSuggestions(
-        results.map(location => ({
-          value: location.address,
-          label: location.address,
-        }))
-      );
+      setSearchResults(results || []);
     } catch (error) {
       console.error('Error searching location:', error);
       toast({
@@ -47,57 +37,45 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
         description: "Failed to search location. Please try again.",
         variant: "destructive",
       });
-      setSuggestions([]);
+      setSearchResults([]);
     }
   }, [toast]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn(
-            "w-full justify-between",
-            className
-          )}
-        >
-          {value || placeholder || "Select location..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
-        <Command>
-          <Command.Input 
-            placeholder={placeholder || "Search location..."} 
-            onValueChange={handleSearch}
-            className="h-9 px-3"
-          />
-          <Command.Empty>No location found.</Command.Empty>
-          <Command.Group>
-            {suggestions.map((suggestion) => (
-              <Command.Item
-                key={suggestion.value}
-                value={suggestion.value}
-                onSelect={(value) => {
-                  onChange(value);
-                  setOpen(false);
-                }}
-                className="px-3 py-2 cursor-pointer hover:bg-accent"
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === suggestion.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {suggestion.label}
-              </Command.Item>
-            ))}
-          </Command.Group>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <Command
+      className={cn(
+        "relative rounded-lg border shadow-md",
+        className
+      )}
+    >
+      <div className="flex items-center border-b px-3">
+        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+        <input
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            handleSearch(e.target.value);
+          }}
+          className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          placeholder={placeholder}
+        />
+      </div>
+      {searchResults.length > 0 && (
+        <div className="absolute mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
+          {searchResults.map((result, index) => (
+            <div
+              key={index}
+              className="cursor-pointer rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              onClick={() => {
+                onChange(result.address);
+                setSearchResults([]);
+              }}
+            >
+              {result.address}
+            </div>
+          ))}
+        </div>
+      )}
+    </Command>
   );
 }
