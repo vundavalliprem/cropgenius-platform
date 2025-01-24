@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { searchLocation } from '@/services/tomtom';
+import { searchLocation } from '@/services/here';
 import { useToast } from "@/hooks/use-toast";
 
 interface LocationSearchProps {
@@ -27,7 +27,9 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
 
     try {
       const results = await searchLocation(search);
-      if (!results || !Array.isArray(results)) {
+      
+      // Ensure results is an array and has items before mapping
+      if (!results || !Array.isArray(results) || results.length === 0) {
         setSuggestions([]);
         return;
       }
