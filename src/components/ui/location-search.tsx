@@ -27,16 +27,12 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
 
     try {
       const results = await searchLocation(search);
-      if (results && Array.isArray(results)) {
-        setSuggestions(
-          results.map(location => ({
-            value: location.address,
-            label: location.address,
-          }))
-        );
-      } else {
-        setSuggestions([]);
-      }
+      setSuggestions(
+        results.map(location => ({
+          value: location.address,
+          label: location.address,
+        }))
+      );
     } catch (error) {
       console.error('Error searching location:', error);
       toast({
