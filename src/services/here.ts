@@ -19,8 +19,8 @@ async function getHereApiKey(): Promise<string> {
       });
 
     if (error || !data?.HERE_API_KEY) {
-      console.error('Failed to get HERE API key:', error);
-      throw new Error('Failed to get HERE API key');
+      console.error('Error getting HERE API key:', error);
+      throw new Error('Failed to get HERE API key. Please make sure the API key is configured.');
     }
 
     return data.HERE_API_KEY;

@@ -28,10 +28,14 @@ serve(async (req) => {
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .single()
+      .maybeSingle()
 
-    if (error || !data) {
-      console.error(`Secret '${name}' not found:`, error)
+    if (error) {
+      console.error(`Error fetching secret '${name}':`, error)
+      throw new Error(`Error fetching secret '${name}'`)
+    }
+
+    if (!data) {
       throw new Error(`Secret '${name}' not found`)
     }
 
