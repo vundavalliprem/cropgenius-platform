@@ -1,16 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export interface HereRoute {
-  sections: Array<{
-    summary: {
-      length: number;
-      duration: number;
-      trafficDelay?: number;
-    };
-    polyline: string;
-  }>;
-}
-
 async function getHereApiKey(): Promise<string> {
   try {
     const { data, error } = await supabase
@@ -26,7 +15,7 @@ async function getHereApiKey(): Promise<string> {
     return data.HERE_API_KEY;
   } catch (error) {
     console.error('Error getting HERE API key:', error);
-    throw new Error('Failed to get HERE API key. Please make sure the API key is configured.');
+    throw error;
   }
 }
 
@@ -42,15 +31,17 @@ export async function searchLocation(query: string): Promise<Array<{
   try {
     const apiKey = await getHereApiKey();
     
-    const response = await fetch(
-      `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query)}&apiKey=${apiKey}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
+    // Create a simple URL object instead of using Request
+    const url = new URL('https://geocode.search.hereapi.com/v1/geocode');
+    url.searchParams.append('q', query);
+    url.searchParams.append('apiKey', apiKey);
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
       }
-    );
+    });
 
     if (!response.ok) {
       throw new Error('Failed to search location');
@@ -82,9 +73,15 @@ export async function calculateRoute(
   try {
     const apiKey = await getHereApiKey();
 
-    const response = await fetch(
-      `https://router.hereapi.com/v8/routes?transportMode=car&origin=${startLat},${startLng}&destination=${endLat},${endLng}&return=polyline,summary&apiKey=${apiKey}`
-    );
+    // Create a simple URL object instead of using Request
+    const url = new URL('https://router.hereapi.com/v8/routes');
+    url.searchParams.append('transportMode', 'car');
+    url.searchParams.append('origin', `${startLat},${startLng}`);
+    url.searchParams.append('destination', `${endLat},${endLng}`);
+    url.searchParams.append('return', 'polyline,summary');
+    url.searchParams.append('apiKey', apiKey);
+
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       throw new Error('Failed to calculate route');
@@ -106,9 +103,12 @@ export async function getTrafficIncidents(
   try {
     const apiKey = await getHereApiKey();
 
-    const response = await fetch(
-      `https://traffic.ls.hereapi.com/traffic/6.2/incidents.json?apiKey=${apiKey}&prox=${lat},${lng},${radius}`
-    );
+    // Create a simple URL object instead of using Request
+    const url = new URL('https://traffic.ls.hereapi.com/traffic/6.2/incidents.json');
+    url.searchParams.append('apiKey', apiKey);
+    url.searchParams.append('prox', `${lat},${lng},${radius}`);
+
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       throw new Error('Failed to get traffic incidents');
