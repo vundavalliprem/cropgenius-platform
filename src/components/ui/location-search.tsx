@@ -1,8 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Command } from "cmdk";
-import { Search } from "lucide-react";
 import { searchLocation } from '@/services/here';
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface LocationSearchProps {
@@ -22,7 +20,7 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
   const { toast } = useToast();
 
   const handleSearch = useCallback(async (search: string) => {
-    if (!search.trim()) {
+    if (!search) {
       setSearchResults([]);
       return;
     }
@@ -43,7 +41,7 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
       console.error('Error searching location:', error);
       toast({
         title: "Search Error",
-        description: "Failed to search location. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to search location",
         variant: "destructive",
       });
       setSearchResults([]);
@@ -53,21 +51,13 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
   }, [toast]);
 
   return (
-    <Command
-      className={cn(
-        "relative rounded-lg border shadow-md",
-        className
-      )}
-    >
-      <div className="flex items-center border-b px-3">
-        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-        <input
+    <Command className={className}>
+      <div className="flex items-center border rounded-md">
+        <Command.Input
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            handleSearch(e.target.value);
-          }}
-          className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          onValueChange={onChange}
+          onInput={(e) => handleSearch(e.currentTarget.value)}
+          className="flex h-10 w-full rounded-md bg-transparent px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={placeholder}
         />
       </div>
@@ -81,7 +71,7 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
           {searchResults.map((result, index) => (
             <div
               key={index}
-              className="cursor-pointer rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              className="cursor-pointer p-2 hover:bg-accent hover:text-accent-foreground rounded-sm text-sm"
               onClick={() => {
                 onChange(result.address);
                 setSearchResults([]);
