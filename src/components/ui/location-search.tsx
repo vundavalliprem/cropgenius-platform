@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Command } from "@/components/ui/command";
+import { CommandInput, Command } from "@/components/ui/command";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchLocation } from "@/services/here";
@@ -56,7 +56,7 @@ export function LocationSearch({
   return (
     <div className={cn("relative", className)} {...props}>
       <Command className="relative" shouldFilter={false}>
-        <Command.Input
+        <CommandInput
           value={value}
           onValueChange={(value) => {
             onChange(value);
