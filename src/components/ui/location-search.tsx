@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Command } from "cmdk";
+import { Command } from "@/components/ui/command";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchLocation } from "@/services/here";
@@ -26,6 +26,7 @@ export function LocationSearch({
 }: LocationSearchProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleSearch = useCallback(async (searchValue: string) => {
     if (!searchValue.trim()) {
@@ -37,6 +38,7 @@ export function LocationSearch({
     try {
       const results = await searchLocation(searchValue);
       setSearchResults(results || []);
+      setIsOpen(true);
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
@@ -48,11 +50,12 @@ export function LocationSearch({
   const handleSelect = useCallback((result: SearchResult) => {
     onChange(result.display_name);
     setSearchResults([]);
+    setIsOpen(false);
   }, [onChange]);
 
   return (
     <div className={cn("relative", className)} {...props}>
-      <Command className="relative">
+      <Command className="relative" shouldFilter={false}>
         <Command.Input
           value={value}
           onValueChange={(value) => {
@@ -70,7 +73,7 @@ export function LocationSearch({
         </div>
       )}
 
-      {searchResults.length > 0 && (
+      {isOpen && searchResults.length > 0 && (
         <SearchResults 
           results={searchResults}
           onSelect={handleSelect}
