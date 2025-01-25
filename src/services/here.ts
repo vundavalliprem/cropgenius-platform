@@ -2,21 +2,34 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface HereRoute {
   sections: Array<{
+    id: string;
+    polyline: string;
     summary: {
       length: number;
       duration: number;
-      trafficDelay?: number;
     };
-    polyline: string;
+  }>;
+}
+
+export interface TrafficIncident {
+  TRAFFIC_ITEM_ID: string;
+  TRAFFIC_ITEM_TYPE_DESC: string;
+  LOCATION: {
+    GEOLOC: {
+      LATITUDE: number;
+      LONGITUDE: number;
+    };
+  };
+  TRAFFIC_ITEM_DESCRIPTION?: Array<{
+    value: string;
   }>;
 }
 
 async function getHereApiKey(): Promise<string> {
   try {
-    const { data, error } = await supabase
-      .functions.invoke('get-secret', {
-        body: { name: 'HERE_API_KEY' }
-      });
+    const { data, error } = await supabase.functions.invoke('get-secret', {
+      body: { name: 'HERE_API_KEY' }
+    });
 
     if (error || !data?.HERE_API_KEY) {
       console.error('Error getting HERE API key:', error);
@@ -25,19 +38,13 @@ async function getHereApiKey(): Promise<string> {
 
     return data.HERE_API_KEY;
   } catch (error) {
-    console.error('Error getting HERE API key:', error);
+    console.error('Error in getHereApiKey:', error);
     throw error;
   }
 }
 
-export async function searchLocation(query: string): Promise<Array<{
-  lat: number;
-  lng: number;
-  address: string;
-}>> {
-  if (!query?.trim()) {
-    return [];
-  }
+export async function searchLocation(query: string): Promise<Array<{ lat: number; lng: number; display_name: string }>> {
+  if (!query.trim()) return [];
 
   try {
     const apiKey = await getHereApiKey();
@@ -46,25 +53,19 @@ export async function searchLocation(query: string): Promise<Array<{
     url.searchParams.append('apiKey', apiKey);
 
     const response = await fetch(url.toString());
-
     if (!response.ok) {
-      throw new Error('Failed to search location');
+      throw new Error('Location search failed');
     }
 
     const data = await response.json();
-    
-    if (!data.items || !Array.isArray(data.items)) {
-      return [];
-    }
-
     return data.items.map((item: any) => ({
       lat: item.position.lat,
       lng: item.position.lng,
-      address: item.address.label,
+      display_name: item.title
     }));
   } catch (error) {
-    console.error('Error searching location:', error);
-    throw error;
+    console.error('Error in searchLocation:', error);
+    return [];
   }
 }
 
@@ -73,7 +74,7 @@ export async function calculateRoute(
   startLng: number,
   endLat: number,
   endLng: number
-): Promise<HereRoute | null> {
+): Promise<HereRoute> {
   try {
     const apiKey = await getHereApiKey();
     const url = new URL('https://router.hereapi.com/v8/routes');
@@ -84,16 +85,17 @@ export async function calculateRoute(
     url.searchParams.append('apiKey', apiKey);
 
     const response = await fetch(url.toString());
-
     if (!response.ok) {
-      throw new Error('Failed to calculate route');
+      throw new Error('Route calculation failed');
     }
 
     const data = await response.json();
-    return data.routes[0];
+    return {
+      sections: data.routes[0].sections
+    };
   } catch (error) {
-    console.error('Error calculating route:', error);
-    return null;
+    console.error('Error in calculateRoute:', error);
+    throw error;
   }
 }
 
@@ -101,7 +103,7 @@ export async function getTrafficIncidents(
   lat: number,
   lng: number,
   radius: number
-): Promise<any[]> {
+): Promise<TrafficIncident[]> {
   try {
     const apiKey = await getHereApiKey();
     const url = new URL('https://traffic.ls.hereapi.com/traffic/6.2/incidents.json');
@@ -109,15 +111,14 @@ export async function getTrafficIncidents(
     url.searchParams.append('prox', `${lat},${lng},${radius}`);
 
     const response = await fetch(url.toString());
-
     if (!response.ok) {
-      throw new Error('Failed to get traffic incidents');
+      throw new Error('Failed to fetch traffic incidents');
     }
 
     const data = await response.json();
     return data.TRAFFIC_ITEMS?.TRAFFIC_ITEM || [];
   } catch (error) {
-    console.error('Error getting traffic incidents:', error);
+    console.error('Error in getTrafficIncidents:', error);
     return [];
   }
 }
