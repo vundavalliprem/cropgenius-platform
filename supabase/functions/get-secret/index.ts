@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,45 +8,45 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { name } = await req.json()
     
-    if (!name) {
-      throw new Error('Secret name is required')
-    }
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    // Get the secret from environment variables
-    const secretValue = Deno.env.get(name)
-    if (!secretValue) {
-      throw new Error(`Secret '${name}' not found`)
+    const { data, error } = await supabaseClient
+      .from('secrets')
+      .select('value')
+      .eq('name', name)
+      .single()
+
+    if (error) throw error
+
+    if (!data) {
+      return new Response(
+        JSON.stringify({ error: `Secret '${name}' not found` }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     return new Response(
-      JSON.stringify({ 
-        [name]: secretValue 
-      }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
-      }
+      JSON.stringify(data),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error in get-secret function:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message 
-      }),
+      JSON.stringify({ error: error.message }),
       { 
-        status: 404,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }

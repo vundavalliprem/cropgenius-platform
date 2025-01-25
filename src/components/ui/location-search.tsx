@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { searchLocation } from "@/services/here";
 import { SearchResults } from "./location-search/SearchResults";
 
-// Omit the onChange from HTMLAttributes to avoid conflict
 type LocationSearchProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> & {
   value: string;
   onChange: (value: string) => void;
@@ -71,7 +70,7 @@ export function LocationSearch({
         </div>
       )}
 
-      {searchResults && searchResults.length > 0 && (
+      {searchResults.length > 0 && (
         <SearchResults 
           results={searchResults}
           onSelect={handleSelect}

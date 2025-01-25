@@ -31,12 +31,12 @@ async function getHereApiKey(): Promise<string> {
       body: { name: 'HERE_API_KEY' }
     });
 
-    if (error || !data?.HERE_API_KEY) {
+    if (error || !data?.value) {
       console.error('Error getting HERE API key:', error);
       throw new Error('Failed to get HERE API key');
     }
 
-    return data.HERE_API_KEY;
+    return data.value;
   } catch (error) {
     console.error('Error in getHereApiKey:', error);
     throw error;
@@ -54,6 +54,8 @@ export async function searchLocation(query: string): Promise<Array<{ lat: number
 
     const response = await fetch(url.toString());
     if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Location search failed:', errorData);
       throw new Error('Location search failed');
     }
 
