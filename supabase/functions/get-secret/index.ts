@@ -14,6 +14,16 @@ serve(async (req) => {
   try {
     const { name } = await req.json()
     
+    if (!name) {
+      return new Response(
+        JSON.stringify({ error: 'Secret name is required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -23,9 +33,12 @@ serve(async (req) => {
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .single()
+      .maybeSingle()
 
-    if (error) throw error
+    if (error) {
+      console.error('Database error:', error)
+      throw error
+    }
 
     if (!data) {
       return new Response(
@@ -42,6 +55,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Error in get-secret function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
