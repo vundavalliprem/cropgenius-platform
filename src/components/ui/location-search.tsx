@@ -66,7 +66,7 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
           Searching...
         </div>
       )}
-      {searchResults && searchResults.length > 0 && (
+      {searchResults.length > 0 && (
         <Command.List className="absolute mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
           {searchResults.map((result, index) => (
             <Command.Item
