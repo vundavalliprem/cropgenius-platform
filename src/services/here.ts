@@ -48,14 +48,16 @@ export async function searchLocation(query: string): Promise<Array<{ lat: number
 
   try {
     const apiKey = await getHereApiKey();
-    const url = new URL('https://geocode.search.hereapi.com/v1/geocode');
-    url.searchParams.append('q', query);
-    url.searchParams.append('apiKey', apiKey);
+    const params = new URLSearchParams({
+      q: query,
+      apiKey: apiKey
+    });
 
-    const response = await fetch(url.toString());
+    const response = await fetch(`https://geocode.search.hereapi.com/v1/geocode?${params.toString()}`);
+    
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Location search failed:', errorData);
+      const errorText = await response.text();
+      console.error('Location search failed:', errorText);
       throw new Error('Location search failed');
     }
 
@@ -79,14 +81,16 @@ export async function calculateRoute(
 ): Promise<HereRoute> {
   try {
     const apiKey = await getHereApiKey();
-    const url = new URL('https://router.hereapi.com/v8/routes');
-    url.searchParams.append('transportMode', 'car');
-    url.searchParams.append('origin', `${startLat},${startLng}`);
-    url.searchParams.append('destination', `${endLat},${endLng}`);
-    url.searchParams.append('return', 'polyline,summary');
-    url.searchParams.append('apiKey', apiKey);
+    const params = new URLSearchParams({
+      transportMode: 'car',
+      origin: `${startLat},${startLng}`,
+      destination: `${endLat},${endLng}`,
+      return: 'polyline,summary',
+      apiKey: apiKey
+    });
 
-    const response = await fetch(url.toString());
+    const response = await fetch(`https://router.hereapi.com/v8/routes?${params.toString()}`);
+    
     if (!response.ok) {
       throw new Error('Route calculation failed');
     }
@@ -108,11 +112,13 @@ export async function getTrafficIncidents(
 ): Promise<TrafficIncident[]> {
   try {
     const apiKey = await getHereApiKey();
-    const url = new URL('https://traffic.ls.hereapi.com/traffic/6.2/incidents.json');
-    url.searchParams.append('apiKey', apiKey);
-    url.searchParams.append('prox', `${lat},${lng},${radius}`);
+    const params = new URLSearchParams({
+      apiKey: apiKey,
+      prox: `${lat},${lng},${radius}`
+    });
 
-    const response = await fetch(url.toString());
+    const response = await fetch(`https://traffic.ls.hereapi.com/traffic/6.2/incidents.json?${params.toString()}`);
+    
     if (!response.ok) {
       throw new Error('Failed to fetch traffic incidents');
     }
