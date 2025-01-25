@@ -58,7 +58,7 @@ export async function searchLocation(query: string): Promise<Array<{ lat: number
     }
 
     const data = await response.json();
-    return data.items.map((item: any) => ({
+    return (data.items || []).map((item: any) => ({
       lat: item.position.lat,
       lng: item.position.lng,
       display_name: item.title

@@ -71,10 +71,12 @@ export function LocationSearch({
         </div>
       )}
 
-      <SearchResults 
-        results={searchResults}
-        onSelect={handleSelect}
-      />
+      {searchResults && searchResults.length > 0 && (
+        <SearchResults 
+          results={searchResults}
+          onSelect={handleSelect}
+        />
+      )}
     </div>
   );
 }
