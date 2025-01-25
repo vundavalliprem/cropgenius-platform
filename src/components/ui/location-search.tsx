@@ -5,11 +5,12 @@ import { cn } from "@/lib/utils";
 import { searchLocation } from "@/services/here";
 import { SearchResults } from "./location-search/SearchResults";
 
-interface LocationSearchProps extends React.HTMLAttributes<HTMLDivElement> {
+// Omit the onChange from HTMLAttributes to avoid conflict
+type LocationSearchProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> & {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-}
+};
 
 interface SearchResult {
   lat: number;
