@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { CommandInput, Command } from "@/components/ui/command";
+import { Command, CommandInput } from "@/components/ui/command";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchLocation } from "@/services/here";
@@ -31,6 +31,7 @@ export function LocationSearch({
   const handleSearch = useCallback(async (searchValue: string) => {
     if (!searchValue.trim()) {
       setSearchResults([]);
+      setIsOpen(false);
       return;
     }
 

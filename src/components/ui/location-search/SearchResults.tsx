@@ -12,7 +12,7 @@ interface SearchResultsProps {
 }
 
 export function SearchResults({ results, onSelect }: SearchResultsProps) {
-  if (!results.length) return null;
+  if (!results?.length) return null;
 
   return (
     <CommandList className="absolute z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
