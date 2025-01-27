@@ -1,10 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Command, CommandInput, CommandEmpty } from "@/components/ui/command";
-import { SearchResults } from "./SearchResults";
-import { searchLocation } from "@/services/here";
-import { useToast } from "@/components/ui/use-toast";
-import debounce from 'lodash/debounce';
-import { Loader2 } from "lucide-react";
+import { Command } from 'cmdk';
+import { SearchResults } from './SearchResults';
+import { useDebounce } from '@/hooks/use-debounce';
+import { searchLocation } from '@/services/here';
+import { Loader2 } from 'lucide-react';
 
 interface LocationSearchProps {
   value: string;
@@ -13,74 +12,71 @@ interface LocationSearchProps {
   className?: string;
 }
 
-export function LocationSearch({ 
-  value, 
-  onChange, 
-  placeholder = "Search location...", 
-  className 
-}: LocationSearchProps) {
-  const [results, setResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const { toast } = useToast();
+export function LocationSearch({ value, onChange, placeholder = 'Search locations...', className }: LocationSearchProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = useCallback(
-    debounce(async (searchTerm: string) => {
-      if (!searchTerm.trim()) {
-        setResults([]);
-        return;
-      }
+  const debouncedSearch = useDebounce(async (term: string) => {
+    if (!term.trim()) {
+      setSearchResults([]);
+      return;
+    }
 
-      setIsSearching(true);
-      try {
-        const searchResults = await searchLocation(searchTerm);
-        setResults(searchResults || []);
-      } catch (error) {
-        console.error('Search error:', error);
-        toast({
-          title: "Search Error",
-          description: "Failed to search location. Please try again.",
-          variant: "destructive",
-        });
-        setResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300),
-    [toast]
-  );
+    setIsLoading(true);
+    setError(null);
 
-  const handleInputChange = (newValue: string) => {
-    onChange(newValue);
-    handleSearch(newValue);
-  };
+    try {
+      const results = await searchLocation(term);
+      // Ensure results is always an array
+      setSearchResults(Array.isArray(results) ? results : []);
+    } catch (err) {
+      console.error('Search error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to search location');
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, 300);
 
-  const handleSelect = (result: { lat: number; lng: number; display_name: string }) => {
-    onChange(result.display_name);
-    setResults([]);
-  };
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+    debouncedSearch(term);
+  }, [debouncedSearch]);
+
+  const handleSelect = useCallback((item: { display_name: string }) => {
+    onChange(item.display_name);
+    setSearchTerm('');
+    setSearchResults([]);
+  }, [onChange]);
 
   return (
-    <Command className={`relative rounded-lg border shadow-md ${className}`}>
-      <div className="flex items-center border-b px-3">
-        <CommandInput
-          value={value}
-          onValueChange={handleInputChange}
-          placeholder={placeholder}
-          className="h-9 flex-1"
-        />
-        {isSearching && (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+    <div className={className}>
+      <Command className="border rounded-lg shadow-sm">
+        <div className="flex items-center border-b px-3">
+          <Command.Input
+            value={searchTerm}
+            onValueChange={handleSearch}
+            placeholder={placeholder}
+            className="flex h-10 w-full rounded-md bg-transparent py-3 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          {isLoading && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        {(searchResults.length > 0 || error) && (
+          <Command.List className="max-h-[200px] overflow-y-auto p-2">
+            {error ? (
+              <Command.Item disabled className="text-sm text-destructive px-2 py-1.5">
+                {error}
+              </Command.Item>
+            ) : (
+              <SearchResults results={searchResults} onSelect={handleSelect} />
+            )}
+          </Command.List>
         )}
-      </div>
-      {results.length > 0 ? (
-        <SearchResults results={results} onSelect={handleSelect} />
-      ) : (
-        value && !isSearching && (
-          <CommandEmpty className="py-6 text-center text-sm">
-            No locations found
-          </CommandEmpty>
-        )
-      )}
-    </Command>
+      </Command>
+    </div>
   );
 }

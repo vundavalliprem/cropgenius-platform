@@ -1,30 +1,27 @@
-import { CommandItem } from "@/components/ui/command";
-import { MapPin } from "lucide-react";
-
-interface SearchResult {
-  lat: number;
-  lng: number;
-  display_name: string;
-}
+import React from 'react';
+import { Command } from 'cmdk';
+import { MapPin } from 'lucide-react';
 
 interface SearchResultsProps {
-  results: SearchResult[];
-  onSelect: (result: SearchResult) => void;
+  results: Array<{ display_name: string }>;
+  onSelect: (item: { display_name: string }) => void;
 }
 
 export function SearchResults({ results, onSelect }: SearchResultsProps) {
+  if (!results.length) return null;
+
   return (
     <>
-      {results.map((result, index) => (
-        <CommandItem
-          key={`${result.lat}-${result.lng}-${index}`}
-          value={result.display_name}
-          onSelect={() => onSelect(result)}
-          className="flex items-center gap-2 px-4 py-2 cursor-pointer"
+      {results.map((item, index) => (
+        <Command.Item
+          key={`${item.display_name}-${index}`}
+          value={item.display_name}
+          onSelect={() => onSelect(item)}
+          className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
         >
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className="truncate">{result.display_name}</span>
-        </CommandItem>
+          <MapPin className="h-4 w-4" />
+          <span>{item.display_name}</span>
+        </Command.Item>
       ))}
     </>
   );
