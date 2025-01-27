@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getSecret } from '../_shared/secrets.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -24,23 +25,27 @@ serve(async (req) => {
       )
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const { data, error } = await supabaseClient
-      .from('secrets')
-      .select('value')
-      .eq('name', name)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Database error:', error)
-      throw error
+    // Only allow specific secrets to be accessed from the client
+    const allowedSecrets = ['HERE_API_KEY', 'TOMTOM_API_KEY'];
+    if (!allowedSecrets.includes(name)) {
+      console.warn(`Attempted access to unauthorized secret: ${name}`);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized secret access' }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
-    if (!data) {
+    try {
+      const value = await getSecret(name);
+      return new Response(
+        JSON.stringify({ value }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } catch (error) {
+      console.error(`Error retrieving secret ${name}:`, error.message);
       return new Response(
         JSON.stringify({ error: `Secret '${name}' not found` }),
         { 
@@ -49,13 +54,8 @@ serve(async (req) => {
         }
       )
     }
-
-    return new Response(
-      JSON.stringify(data),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
   } catch (error) {
-    console.error('Error in get-secret function:', error)
+    console.error('Error in get-secret function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
