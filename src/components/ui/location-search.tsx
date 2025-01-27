@@ -31,7 +31,7 @@ export function LocationSearch({
   const { toast } = useToast();
 
   const handleSearch = useCallback(async (searchValue: string) => {
-    if (!searchValue.trim()) {
+    if (!searchValue?.trim()) {
       setSearchResults([]);
       setIsOpen(false);
       return;
@@ -40,7 +40,13 @@ export function LocationSearch({
     setIsSearching(true);
     try {
       const results = await searchLocation(searchValue);
-      setSearchResults(results || []);
+      // Ensure results is always an array and contains only cloneable data
+      const sanitizedResults = (results || []).map(result => ({
+        lat: Number(result.lat),
+        lng: Number(result.lng),
+        display_name: String(result.display_name)
+      }));
+      setSearchResults(sanitizedResults);
       setIsOpen(true);
     } catch (error) {
       console.error('Search error:', error);
@@ -56,6 +62,7 @@ export function LocationSearch({
   }, [toast]);
 
   const handleSelect = useCallback((result: SearchResult) => {
+    if (!result?.display_name) return;
     onChange(result.display_name);
     setSearchResults([]);
     setIsOpen(false);
@@ -66,7 +73,7 @@ export function LocationSearch({
       <Command shouldFilter={false} className="border rounded-md">
         <div className="flex items-center border-b px-3">
           <CommandInput
-            value={value}
+            value={value || ""}
             onValueChange={(newValue) => {
               onChange(newValue);
               handleSearch(newValue);
@@ -78,7 +85,7 @@ export function LocationSearch({
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
-        {isOpen && searchResults && (
+        {isOpen && (
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             {searchResults.length > 0 && (
