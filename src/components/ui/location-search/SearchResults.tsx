@@ -1,4 +1,5 @@
-import { Command, CommandList, CommandItem } from "@/components/ui/command";
+import { CommandList, CommandItem, CommandGroup } from "@/components/ui/command";
+import { MapPin } from "lucide-react";
 
 interface SearchResult {
   lat: number;
@@ -15,19 +16,20 @@ export function SearchResults({ results, onSelect }: SearchResultsProps) {
   if (!results?.length) return null;
 
   return (
-    <Command className="absolute z-50 w-full mt-1">
-      <CommandList className="rounded-lg border bg-popover shadow-md">
+    <CommandList>
+      <CommandGroup heading="Locations">
         {results.map((result, index) => (
           <CommandItem
             key={`${result.lat}-${result.lng}-${index}`}
             value={result.display_name}
             onSelect={() => onSelect(result)}
-            className="cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 cursor-pointer"
           >
-            {result.display_name}
+            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{result.display_name}</span>
           </CommandItem>
         ))}
-      </CommandList>
-    </Command>
+      </CommandGroup>
+    </CommandList>
   );
 }

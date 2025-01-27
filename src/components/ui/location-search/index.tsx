@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Command, CommandInput } from "@/components/ui/command";
+import { Command, CommandInput, CommandEmpty } from "@/components/ui/command";
 import { SearchResults } from "./SearchResults";
 import { searchLocation } from "@/services/here";
 import { useToast } from "@/components/ui/use-toast";
 import debounce from 'lodash/debounce';
+import { Loader2 } from "lucide-react";
 
 interface LocationSearchProps {
   value: string;
@@ -12,7 +13,12 @@ interface LocationSearchProps {
   className?: string;
 }
 
-export function LocationSearch({ value, onChange, placeholder = "Search location...", className }: LocationSearchProps) {
+export function LocationSearch({ 
+  value, 
+  onChange, 
+  placeholder = "Search location...", 
+  className 
+}: LocationSearchProps) {
   const [results, setResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
@@ -40,7 +46,7 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
         setIsSearching(false);
       }
     }, 300),
-    []
+    [toast]
   );
 
   const handleInputChange = (newValue: string) => {
@@ -54,18 +60,27 @@ export function LocationSearch({ value, onChange, placeholder = "Search location
   };
 
   return (
-    <div className={`relative ${className}`}>
-      <Command className="rounded-lg border shadow-md">
+    <Command className={`relative rounded-lg border shadow-md ${className}`}>
+      <div className="flex items-center border-b px-3">
         <CommandInput
           value={value}
           onValueChange={handleInputChange}
           placeholder={placeholder}
-          className="h-9"
+          className="h-9 flex-1"
         />
-      </Command>
-      {results.length > 0 && (
+        {isSearching && (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        )}
+      </div>
+      {results.length > 0 ? (
         <SearchResults results={results} onSelect={handleSelect} />
+      ) : (
+        value && !isSearching && (
+          <CommandEmpty className="py-6 text-center text-sm">
+            No locations found
+          </CommandEmpty>
+        )
       )}
-    </div>
+    </Command>
   );
 }
