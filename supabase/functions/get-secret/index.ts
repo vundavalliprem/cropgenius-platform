@@ -40,6 +40,7 @@ serve(async (req) => {
 
     try {
       const value = await getSecret(name);
+      console.log(`Successfully retrieved secret: ${name}`);
       return new Response(
         JSON.stringify({ value }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
