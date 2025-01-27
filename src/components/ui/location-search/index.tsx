@@ -29,7 +29,6 @@ export function LocationSearch({ value, onChange, placeholder = 'Search location
 
     try {
       const results = await searchLocation(term);
-      // Ensure results is always an array
       setSearchResults(Array.isArray(results) ? results : []);
     } catch (err) {
       console.error('Search error:', err);
