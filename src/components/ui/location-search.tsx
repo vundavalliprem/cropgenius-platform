@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from "react";
-import { Command, CommandInput } from "@/components/ui/command";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup } from "@/components/ui/command";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchLocation } from "@/services/here";
 import { SearchResults } from "./location-search/SearchResults";
+import { useToast } from "@/components/ui/use-toast";
 
 type LocationSearchProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> & {
   value: string;
@@ -27,6 +28,7 @@ export function LocationSearch({
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleSearch = useCallback(async (searchValue: string) => {
     if (!searchValue.trim()) {
@@ -42,11 +44,16 @@ export function LocationSearch({
       setIsOpen(true);
     } catch (error) {
       console.error('Search error:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to search location. Please try again.",
+        variant: "destructive",
+      });
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [toast]);
 
   const handleSelect = useCallback((result: SearchResult) => {
     onChange(result.display_name);
@@ -56,30 +63,35 @@ export function LocationSearch({
 
   return (
     <div className={cn("relative", className)} {...props}>
-      <Command className="relative" shouldFilter={false}>
-        <CommandInput
-          value={value}
-          onValueChange={(value) => {
-            onChange(value);
-            handleSearch(value);
-          }}
-          placeholder={placeholder}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        />
-      </Command>
-
-      {isSearching && (
-        <div className="absolute right-2 top-2.5 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
+      <Command shouldFilter={false} className="border rounded-md">
+        <div className="flex items-center border-b px-3">
+          <CommandInput
+            value={value}
+            onValueChange={(newValue) => {
+              onChange(newValue);
+              handleSearch(newValue);
+            }}
+            placeholder={placeholder}
+            className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          {isSearching && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
         </div>
-      )}
-
-      {isOpen && searchResults.length > 0 && (
-        <SearchResults 
-          results={searchResults}
-          onSelect={handleSelect}
-        />
-      )}
+        {isOpen && (
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            {searchResults.length > 0 && (
+              <CommandGroup>
+                <SearchResults 
+                  results={searchResults}
+                  onSelect={handleSelect}
+                />
+              </CommandGroup>
+            )}
+          </CommandList>
+        )}
+      </Command>
     </div>
   );
 }
