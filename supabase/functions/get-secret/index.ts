@@ -16,6 +16,7 @@ serve(async (req) => {
     const { name } = await req.json()
     
     if (!name) {
+      console.error('Secret name is required');
       return new Response(
         JSON.stringify({ error: 'Secret name is required' }),
         { 

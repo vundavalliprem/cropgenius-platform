@@ -1,23 +1,34 @@
-import React from 'react';
-import { CommandItem } from "@/components/ui/command";
-import { MapPin } from 'lucide-react';
-
-interface SearchResult {
-  lat: number;
-  lng: number;
-  display_name: string;
-}
+import { MapPin } from "lucide-react";
+import {
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import { SearchResult } from ".";
 
 interface SearchResultsProps {
   results: SearchResult[];
   onSelect: (item: SearchResult) => void;
+  isLoading?: boolean;
 }
 
-export function SearchResults({ results, onSelect }: SearchResultsProps) {
-  if (!Array.isArray(results) || results.length === 0) return null;
+export function SearchResults({ results, onSelect, isLoading }: SearchResultsProps) {
+  if (isLoading) {
+    return (
+      <CommandGroup>
+        <CommandItem disabled className="flex items-center gap-2 px-4 py-2">
+          Searching...
+        </CommandItem>
+      </CommandGroup>
+    );
+  }
+
+  if (!results?.length) {
+    return <CommandEmpty>No results found.</CommandEmpty>;
+  }
 
   return (
-    <>
+    <CommandGroup>
       {results.map((item, index) => (
         <CommandItem
           key={`${item.display_name}-${index}`}
@@ -29,6 +40,6 @@ export function SearchResults({ results, onSelect }: SearchResultsProps) {
           <span>{item.display_name}</span>
         </CommandItem>
       ))}
-    </>
+    </CommandGroup>
   );
 }
