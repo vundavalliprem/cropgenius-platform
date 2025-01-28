@@ -6,17 +6,17 @@ import { searchLocation } from "@/services/here";
 import { SearchResults } from "./location-search/SearchResults";
 import { useToast } from "@/components/ui/use-toast";
 
-type LocationSearchProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> & {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-};
-
 interface SearchResult {
   lat: number;
   lng: number;
   display_name: string;
 }
+
+type LocationSearchProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> & {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+};
 
 export function LocationSearch({
   value,
@@ -40,12 +40,14 @@ export function LocationSearch({
     setIsSearching(true);
     try {
       const results = await searchLocation(searchValue);
+      
       // Ensure results is always an array and contains only cloneable data
-      const sanitizedResults = (results || []).map(result => ({
-        lat: Number(result.lat),
-        lng: Number(result.lng),
-        display_name: String(result.display_name)
-      }));
+      const sanitizedResults = Array.isArray(results) ? results.map(result => ({
+        lat: Number(result.lat) || 0,
+        lng: Number(result.lng) || 0,
+        display_name: String(result.display_name || '')
+      })) : [];
+      
       setSearchResults(sanitizedResults);
       setIsOpen(true);
     } catch (error) {
@@ -93,6 +95,7 @@ export function LocationSearch({
                 <SearchResults 
                   results={searchResults}
                   onSelect={handleSelect}
+                  isLoading={isSearching}
                 />
               </CommandGroup>
             )}

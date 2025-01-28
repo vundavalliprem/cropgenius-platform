@@ -4,7 +4,12 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { SearchResult } from ".";
+
+interface SearchResult {
+  lat: number;
+  lng: number;
+  display_name: string;
+}
 
 interface SearchResultsProps {
   results: SearchResult[];
@@ -23,7 +28,7 @@ export function SearchResults({ results, onSelect, isLoading }: SearchResultsPro
     );
   }
 
-  if (!results?.length) {
+  if (!Array.isArray(results) || results.length === 0) {
     return <CommandEmpty>No results found.</CommandEmpty>;
   }
 
