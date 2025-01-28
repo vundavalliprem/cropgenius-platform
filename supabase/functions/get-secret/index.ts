@@ -7,13 +7,17 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('Processing request to get-secret function');
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { name } = await req.json()
+    console.log(`Received request for secret: ${name}`);
     
     if (!name) {
       console.error('Secret name is required');
