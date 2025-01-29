@@ -89,14 +89,11 @@ export function LocationSearch({
         </div>
         {isOpen && (
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup>
-              <SearchResults 
-                results={searchResults}
-                onSelect={handleSelect}
-                isLoading={isSearching}
-              />
-            </CommandGroup>
+            <SearchResults 
+              results={searchResults}
+              onSelect={handleSelect}
+              isLoading={isSearching}
+            />
           </CommandList>
         )}
       </Command>

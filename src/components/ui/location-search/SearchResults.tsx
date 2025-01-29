@@ -8,7 +8,7 @@ import { MapPin, Loader2 } from "lucide-react";
 interface SearchResult {
   lat: number;
   lng: number;
-  label: string;
+  display_name: string;
 }
 
 interface SearchResultsProps {
@@ -37,11 +37,11 @@ export function SearchResults({ results, isLoading, onSelect }: SearchResultsPro
       {results.map((result, index) => (
         <CommandItem
           key={`${result.lat}-${result.lng}-${index}`}
-          value={result.label}
+          value={result.display_name}
           onSelect={() => onSelect(result)}
         >
           <MapPin className="mr-2 h-4 w-4" />
-          {result.label}
+          {result.display_name}
         </CommandItem>
       ))}
     </CommandGroup>
