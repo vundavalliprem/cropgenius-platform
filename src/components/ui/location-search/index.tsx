@@ -12,7 +12,7 @@ interface LocationSearchProps {
 }
 
 export function LocationSearch({ value, onChange, placeholder, className }: LocationSearchProps) {
-  const [results, setResults] = useState<Array<{ lat: number; lng: number; label: string }>>([]);
+  const [results, setResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -29,7 +29,7 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
       const cleanResults = searchResults.map(result => ({
         lat: result.lat,
         lng: result.lng,
-        label: result.label
+        display_name: result.display_name
       }));
       setResults(cleanResults);
     } catch (error) {
@@ -59,7 +59,7 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
         results={results} 
         isLoading={isLoading}
         onSelect={(result) => {
-          onChange(result.label);
+          onChange(result.display_name);
           setResults([]);
         }}
       />
