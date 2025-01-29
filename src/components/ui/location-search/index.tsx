@@ -1,8 +1,8 @@
-import React, { useCallback, useState } from "react";
-import { Command, CommandInput } from "@/components/ui/command";
+import { useState } from "react";
+import { Command } from "@/components/ui/command";
 import { SearchResults } from "./SearchResults";
-import { searchLocation } from "@/services/here";
 import { useToast } from "@/components/ui/use-toast";
+import { searchLocation } from "@/services/here";
 
 interface LocationSearchProps {
   value: string;
@@ -16,7 +16,7 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSearch = useCallback(async (searchTerm: string) => {
+  const handleSearch = async (searchTerm: string) => {
     if (!searchTerm.trim()) {
       setResults([]);
       return;
@@ -25,29 +25,31 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
     setIsLoading(true);
     try {
       const searchResults = await searchLocation(searchTerm);
-      // Ensure we only pass cloneable data
-      const cleanResults = searchResults.map(result => ({
-        lat: result.lat,
-        lng: result.lng,
-        display_name: result.display_name
+      
+      // Ensure we only keep cloneable data and handle potential undefined values
+      const cleanResults = (searchResults || []).map(result => ({
+        lat: Number(result.lat) || 0,
+        lng: Number(result.lng) || 0,
+        display_name: String(result.display_name || '')
       }));
+      
       setResults(cleanResults);
     } catch (error) {
-      console.error('Search error:', error);
-      setResults([]);
+      console.error('Error in searchLocation:', error);
       toast({
         title: "Search Error",
-        description: "Failed to search location. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to search location",
         variant: "destructive",
       });
+      setResults([]);
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  };
 
   return (
     <Command className={className}>
-      <CommandInput
+      <Command.Input 
         value={value}
         onValueChange={(value) => {
           onChange(value);
@@ -55,14 +57,16 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
         }}
         placeholder={placeholder}
       />
-      <SearchResults 
-        results={results} 
-        isLoading={isLoading}
-        onSelect={(result) => {
-          onChange(result.display_name);
-          setResults([]);
-        }}
-      />
+      <Command.List>
+        <SearchResults 
+          results={results} 
+          isLoading={isLoading}
+          onSelect={(result) => {
+            onChange(result.display_name);
+            setResults([]);
+          }}
+        />
+      </Command.List>
     </Command>
   );
 }

@@ -28,13 +28,16 @@ export function SearchResults({ results, isLoading, onSelect }: SearchResultsPro
     );
   }
 
-  if (!results.length) {
+  // Ensure results is always an array
+  const safeResults = Array.isArray(results) ? results : [];
+
+  if (!safeResults.length) {
     return <CommandEmpty>No results found.</CommandEmpty>;
   }
 
   return (
     <CommandGroup>
-      {results.map((result, index) => (
+      {safeResults.map((result, index) => (
         <CommandItem
           key={`${result.lat}-${result.lng}-${index}`}
           value={result.display_name}
