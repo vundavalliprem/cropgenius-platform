@@ -8,28 +8,27 @@ import { MapPin, Loader2 } from "lucide-react";
 interface SearchResult {
   lat: number;
   lng: number;
-  display_name: string;
+  label: string;
 }
 
 interface SearchResultsProps {
   results: SearchResult[];
+  isLoading: boolean;
   onSelect: (result: SearchResult) => void;
-  isLoading?: boolean;
 }
 
-export function SearchResults({ results, onSelect, isLoading }: SearchResultsProps) {
+export function SearchResults({ results, isLoading, onSelect }: SearchResultsProps) {
   if (isLoading) {
     return (
       <CommandGroup>
-        <CommandItem disabled className="flex items-center gap-2 px-4 py-2">
+        <div className="flex items-center justify-center p-4">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Searching...</span>
-        </CommandItem>
+        </div>
       </CommandGroup>
     );
   }
 
-  if (!Array.isArray(results) || results.length === 0) {
+  if (!results.length) {
     return <CommandEmpty>No results found.</CommandEmpty>;
   }
 
@@ -38,11 +37,11 @@ export function SearchResults({ results, onSelect, isLoading }: SearchResultsPro
       {results.map((result, index) => (
         <CommandItem
           key={`${result.lat}-${result.lng}-${index}`}
+          value={result.label}
           onSelect={() => onSelect(result)}
-          className="flex items-center gap-2 px-4 py-2 cursor-pointer"
         >
-          <MapPin className="h-4 w-4" />
-          <span>{result.display_name}</span>
+          <MapPin className="mr-2 h-4 w-4" />
+          {result.label}
         </CommandItem>
       ))}
     </CommandGroup>

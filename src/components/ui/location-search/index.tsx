@@ -1,82 +1,68 @@
-import { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Command, CommandInput } from "@/components/ui/command";
 import { SearchResults } from "./SearchResults";
-import { useDebounce } from "@/hooks/use-debounce";
 import { searchLocation } from "@/services/here";
-
-export interface SearchResult {
-  lat: number;
-  lng: number;
-  display_name: string;
-}
+import { useToast } from "@/components/ui/use-toast";
 
 interface LocationSearchProps {
   value: string;
   onChange: (value: string) => void;
-  onSelect?: (result: SearchResult) => void;
   placeholder?: string;
   className?: string;
 }
 
-export function LocationSearch({
-  value,
-  onChange,
-  onSelect,
-  placeholder = "Search location...",
-  className,
-}: LocationSearchProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+export function LocationSearch({ value, onChange, placeholder, className }: LocationSearchProps) {
+  const [results, setResults] = useState<Array<{ lat: number; lng: number; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const debouncedSearch = useDebounce(async (searchTerm: string) => {
+  const handleSearch = useCallback(async (searchTerm: string) => {
     if (!searchTerm.trim()) {
-      setSearchResults([]);
+      setResults([]);
       return;
     }
 
     setIsLoading(true);
     try {
-      const results = await searchLocation(searchTerm);
-      setSearchResults(results || []);
+      const searchResults = await searchLocation(searchTerm);
+      // Ensure we only pass cloneable data
+      const cleanResults = searchResults.map(result => ({
+        lat: result.lat,
+        lng: result.lng,
+        label: result.label
+      }));
+      setResults(cleanResults);
     } catch (error) {
       console.error('Search error:', error);
-      setSearchResults([]);
+      setResults([]);
+      toast({
+        title: "Search Error",
+        description: "Failed to search location. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  }, 500);
-
-  const handleSearch = (searchTerm: string) => {
-    onChange(searchTerm);
-    debouncedSearch(searchTerm);
-  };
-
-  const handleSelect = (result: SearchResult) => {
-    onChange(result.display_name);
-    onSelect?.(result);
-    setIsOpen(false);
-  };
+  }, [toast]);
 
   return (
     <Command className={className}>
       <CommandInput
         value={value}
-        onValueChange={handleSearch}
+        onValueChange={(value) => {
+          onChange(value);
+          handleSearch(value);
+        }}
         placeholder={placeholder}
-        onFocus={() => setIsOpen(true)}
       />
-      {isOpen && (
-        <div className="relative mt-2">
-          <div className="absolute top-0 z-50 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
-            <SearchResults
-              results={searchResults}
-              onSelect={handleSelect}
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
-      )}
+      <SearchResults 
+        results={results} 
+        isLoading={isLoading}
+        onSelect={(result) => {
+          onChange(result.label);
+          setResults([]);
+        }}
+      />
     </Command>
   );
 }
