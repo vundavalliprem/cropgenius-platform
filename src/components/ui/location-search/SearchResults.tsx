@@ -3,7 +3,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { MapPin } from "lucide-react";
+import { MapPin, Loader2 } from "lucide-react";
 
 interface SearchResult {
   lat: number;
