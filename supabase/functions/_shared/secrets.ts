@@ -25,7 +25,7 @@ const getSecret = async (name: string): Promise<string> => {
     return data[0].value;
   } catch (error) {
     console.error(`Error retrieving secret '${name}':`, error.message);
-    throw new Error(`Failed to retrieve secret '${name}'`);
+    throw error;
   }
 };
 

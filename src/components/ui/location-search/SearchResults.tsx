@@ -3,6 +3,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
+import { MapPin } from "lucide-react";
 
 interface SearchResult {
   lat: number;
@@ -19,9 +20,12 @@ interface SearchResultsProps {
 export function SearchResults({ results, onSelect, isLoading }: SearchResultsProps) {
   if (isLoading) {
     return (
-      <div className="p-4 text-center text-sm text-muted-foreground">
-        Searching...
-      </div>
+      <CommandGroup>
+        <CommandItem disabled className="flex items-center gap-2 px-4 py-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Searching...</span>
+        </CommandItem>
+      </CommandGroup>
     );
   }
 
@@ -30,16 +34,17 @@ export function SearchResults({ results, onSelect, isLoading }: SearchResultsPro
   }
 
   return (
-    <>
+    <CommandGroup>
       {results.map((result, index) => (
         <CommandItem
           key={`${result.lat}-${result.lng}-${index}`}
           onSelect={() => onSelect(result)}
-          className="cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 cursor-pointer"
         >
-          {result.display_name}
+          <MapPin className="h-4 w-4" />
+          <span>{result.display_name}</span>
         </CommandItem>
       ))}
-    </>
+    </CommandGroup>
   );
 }

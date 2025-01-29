@@ -12,11 +12,11 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { name } = await req.json()
+    const { name } = await req.json();
     console.log(`Received request for secret: ${name}`);
     
     if (!name) {
@@ -27,10 +27,10 @@ serve(async (req) => {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     }
 
-    // Only allow specific secrets to be accessed from the client
+    // Only allow specific secrets to be accessed
     const allowedSecrets = ['HERE_API_KEY'];
     if (!allowedSecrets.includes(name)) {
       console.warn(`Attempted access to unauthorized secret: ${name}`);
@@ -40,34 +40,23 @@ serve(async (req) => {
           status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     }
 
-    try {
-      const value = await getSecret(name);
-      console.log(`Successfully retrieved secret: ${name}`);
-      return new Response(
-        JSON.stringify({ value }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    } catch (error) {
-      console.error(`Error retrieving secret ${name}:`, error.message);
-      return new Response(
-        JSON.stringify({ error: `Secret '${name}' not found` }),
-        { 
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
+    const value = await getSecret(name);
+    console.log(`Successfully retrieved secret: ${name}`);
+    return new Response(
+      JSON.stringify({ value }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Error in get-secret function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        status: 500,
+        status: error.message.includes('not found') ? 404 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
   }
 })

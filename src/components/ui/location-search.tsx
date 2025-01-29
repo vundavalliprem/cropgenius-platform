@@ -75,7 +75,7 @@ export function LocationSearch({
       <Command shouldFilter={false} className="border rounded-md">
         <div className="flex items-center border-b px-3">
           <CommandInput
-            value={value || ""}
+            value={value}
             onValueChange={(newValue) => {
               onChange(newValue);
               handleSearch(newValue);
@@ -90,15 +90,13 @@ export function LocationSearch({
         {isOpen && (
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
-            {searchResults.length > 0 && (
-              <CommandGroup>
-                <SearchResults 
-                  results={searchResults}
-                  onSelect={handleSelect}
-                  isLoading={isSearching}
-                />
-              </CommandGroup>
-            )}
+            <CommandGroup>
+              <SearchResults 
+                results={searchResults}
+                onSelect={handleSelect}
+                isLoading={isSearching}
+              />
+            </CommandGroup>
           </CommandList>
         )}
       </Command>
