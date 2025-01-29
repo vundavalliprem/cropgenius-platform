@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Command } from "@/components/ui/command";
+import { Command, CommandInput, CommandList } from "@/components/ui/command";
 import { SearchResults } from "./SearchResults";
 import { useToast } from "@/components/ui/use-toast";
 import { searchLocation } from "@/services/here";
@@ -49,7 +49,7 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
 
   return (
     <Command className={className}>
-      <Command.Input 
+      <CommandInput 
         value={value}
         onValueChange={(value) => {
           onChange(value);
@@ -57,7 +57,7 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
         }}
         placeholder={placeholder}
       />
-      <Command.List>
+      <CommandList>
         <SearchResults 
           results={results} 
           isLoading={isLoading}
@@ -66,7 +66,7 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
             setResults([]);
           }}
         />
-      </Command.List>
+      </CommandList>
     </Command>
   );
 }
