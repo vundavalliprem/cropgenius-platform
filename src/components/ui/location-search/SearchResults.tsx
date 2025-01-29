@@ -1,4 +1,3 @@
-import { MapPin } from "lucide-react";
 import {
   CommandEmpty,
   CommandGroup,
@@ -13,18 +12,16 @@ interface SearchResult {
 
 interface SearchResultsProps {
   results: SearchResult[];
-  onSelect: (item: SearchResult) => void;
+  onSelect: (result: SearchResult) => void;
   isLoading?: boolean;
 }
 
 export function SearchResults({ results, onSelect, isLoading }: SearchResultsProps) {
   if (isLoading) {
     return (
-      <CommandGroup>
-        <CommandItem disabled className="flex items-center gap-2 px-4 py-2">
-          Searching...
-        </CommandItem>
-      </CommandGroup>
+      <div className="p-4 text-center text-sm text-muted-foreground">
+        Searching...
+      </div>
     );
   }
 
@@ -33,18 +30,16 @@ export function SearchResults({ results, onSelect, isLoading }: SearchResultsPro
   }
 
   return (
-    <CommandGroup>
-      {results.map((item, index) => (
+    <>
+      {results.map((result, index) => (
         <CommandItem
-          key={`${item.display_name}-${index}`}
-          value={item.display_name}
-          onSelect={() => onSelect(item)}
-          className="flex items-center gap-2 px-4 py-2"
+          key={`${result.lat}-${result.lng}-${index}`}
+          onSelect={() => onSelect(result)}
+          className="cursor-pointer"
         >
-          <MapPin className="h-4 w-4" />
-          <span>{item.display_name}</span>
+          {result.display_name}
         </CommandItem>
       ))}
-    </CommandGroup>
+    </>
   );
 }
