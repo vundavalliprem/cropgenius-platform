@@ -87,7 +87,7 @@ export function LocationSearch({
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
-        {isOpen && (
+        {isOpen && searchResults.length > 0 && (
           <CommandList>
             <SearchResults 
               results={searchResults}
