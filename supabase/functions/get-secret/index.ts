@@ -31,7 +31,7 @@ serve(async (req) => {
     }
 
     // Only allow specific secrets to be accessed
-    const allowedSecrets = ['HERE_API_KEY'];
+    const allowedSecrets = ['TOMTOM_API_KEY'];
     if (!allowedSecrets.includes(name)) {
       console.warn(`Attempted access to unauthorized secret: ${name}`);
       return new Response(

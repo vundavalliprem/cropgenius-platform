@@ -18,14 +18,14 @@ export function useMapSetup({
 }: UseMapSetupProps) {
   const { mapRef, mountedRef } = useMapInstance(mapContainer, isReady);
   const drawRef = useDrawControls({
-    mapRef,
+    mapRef: mapRef as React.RefObject<tt.Map>,
     mountedRef,
     onAreaUpdate: setCalculatedArea,
     selectedUnit,
   });
 
   return {
-    mapRef,
+    mapRef: mapRef as React.RefObject<tt.Map>,
     drawRef,
   };
 }

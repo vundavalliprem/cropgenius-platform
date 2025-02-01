@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/dashboard/Card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, endOfMonth } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +26,7 @@ export function FinancialDashboard() {
 
       if (selectedMonth) {
         const startDate = `${selectedMonth}-01`;
-        const endDate = `${selectedMonth}-31`;
+        const endDate = format(endOfMonth(new Date(startDate)), 'yyyy-MM-dd');
         query = query.gte('record_date', startDate).lte('record_date', endDate);
       }
       
