@@ -11,6 +11,13 @@ interface UseDrawControlsProps {
   selectedUnit: AreaUnit;
 }
 
+// Define custom event types for draw events
+interface DrawEvent {
+  features: any[];
+  target: tt.Map;
+  type: string;
+}
+
 export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit }: UseDrawControlsProps) {
   const drawRef = useRef<MapboxDraw | null>(null);
 
@@ -116,18 +123,20 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
     mapRef.current.addControl(draw, 'top-left');
     drawRef.current = draw;
 
-    // Add event listeners using TomTom's event names
+    // Add event listeners using TomTom's event names with type assertion
     const map = mapRef.current;
-    map.on('drawcreate', calculateArea);
-    map.on('drawdelete', calculateArea);
-    map.on('drawupdate', calculateArea);
+    const handleDrawEvent = (e: DrawEvent) => calculateArea();
+
+    map.on('draw.create' as any, handleDrawEvent);
+    map.on('draw.delete' as any, handleDrawEvent);
+    map.on('draw.update' as any, handleDrawEvent);
 
     return () => {
       if (map && mountedRef.current) {
         try {
-          map.off('drawcreate', calculateArea);
-          map.off('drawdelete', calculateArea);
-          map.off('drawupdate', calculateArea);
+          map.off('draw.create' as any, handleDrawEvent);
+          map.off('draw.delete' as any, handleDrawEvent);
+          map.off('draw.update' as any, handleDrawEvent);
           if (drawRef.current) {
             map.removeControl(drawRef.current);
           }
