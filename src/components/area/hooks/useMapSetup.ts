@@ -1,6 +1,7 @@
 import { useMapInstance } from './useMapInstance';
 import { useDrawControls } from './useDrawControls';
 import { AreaUnit } from './useAreaCalculation';
+import tt from '@tomtom-international/web-sdk-maps';
 
 interface UseMapSetupProps {
   isReady: boolean;
