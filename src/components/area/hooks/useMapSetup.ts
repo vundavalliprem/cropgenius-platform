@@ -18,8 +18,8 @@ export function useMapSetup({
 }: UseMapSetupProps) {
   const { mapRef, mountedRef } = useMapInstance(mapContainer, isReady);
 
-  // Cast mapRef to the correct TomTom Map type
-  const tomtomMapRef = mapRef as unknown as React.RefObject<tt.Map>;
+  // Cast mapRef to the correct TomTom Map type and ensure it's properly typed for the draw controls
+  const tomtomMapRef = mapRef as unknown as React.MutableRefObject<tt.Map>;
 
   const drawRef = useDrawControls({
     mapRef: tomtomMapRef,
