@@ -17,15 +17,19 @@ export function useMapSetup({
   mapContainer
 }: UseMapSetupProps) {
   const { mapRef, mountedRef } = useMapInstance(mapContainer, isReady);
+
+  // Cast mapRef to the correct TomTom Map type
+  const tomtomMapRef = mapRef as unknown as React.RefObject<tt.Map>;
+
   const drawRef = useDrawControls({
-    mapRef: mapRef as React.RefObject<tt.Map>,
+    mapRef: tomtomMapRef,
     mountedRef,
     onAreaUpdate: setCalculatedArea,
     selectedUnit,
   });
 
   return {
-    mapRef: mapRef as React.RefObject<tt.Map>,
+    mapRef: tomtomMapRef,
     drawRef,
   };
 }
