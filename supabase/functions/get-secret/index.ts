@@ -1,62 +1,48 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { getSecret } from '../_shared/secrets.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
-  console.log('Processing request to get-secret function');
-
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { name } = await req.json();
-    console.log(`Received request for secret: ${name}`);
+    const { name } = await req.json()
     
     if (!name) {
-      console.error('Secret name is required');
-      return new Response(
-        JSON.stringify({ error: 'Secret name is required' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('Secret name is required')
     }
 
-    // Only allow specific secrets to be accessed
-    const allowedSecrets = ['TOMTOM_API_KEY'];
-    if (!allowedSecrets.includes(name)) {
-      console.warn(`Attempted access to unauthorized secret: ${name}`);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized secret access' }),
-        { 
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    // Create a Supabase client with the service role key
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    const value = await getSecret(name);
-    console.log(`Successfully retrieved secret: ${name}`);
+    const { data, error } = await supabaseClient
+      .from('secrets')
+      .select('value')
+      .eq('name', name)
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error(`Secret '${name}' not found`)
+
     return new Response(
-      JSON.stringify({ value }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({ value: data.value }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
   } catch (error) {
-    console.error('Error in get-secret function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: error.message.includes('not found') ? 404 : 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      },
+    )
   }
 })
