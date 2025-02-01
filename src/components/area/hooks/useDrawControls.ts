@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
+import tt from '@tomtom-international/web-sdk-maps';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import * as turf from '@turf/turf';
 import { AreaUnit, UNITS } from './useAreaCalculation';
 
 interface UseDrawControlsProps {
-  mapRef: React.RefObject<mapboxgl.Map>;
+  mapRef: React.MutableRefObject<tt.Map>;
   mountedRef: React.RefObject<boolean>;
   onAreaUpdate: (area: number | null) => void;
   selectedUnit: AreaUnit;
@@ -49,7 +49,7 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
                 ? `${length.toFixed(2)} km`
                 : `${(length * 1000).toFixed(0)} m`;
 
-              new mapboxgl.Marker({
+              new tt.Marker({
                 element: createLengthLabel(displayLength),
                 anchor: 'center'
               })
