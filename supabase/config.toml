@@ -17,7 +17,3 @@ verify_jwt = false
 
 [functions.get-commodity-prices]
 verify_jwt = false
-
-[[imports]]
-name = "http/server"
-path = "https://deno.land/std@0.168.0/http/server.ts"
