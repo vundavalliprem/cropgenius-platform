@@ -116,18 +116,18 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
     mapRef.current.addControl(draw, 'top-left');
     drawRef.current = draw;
 
-    // Add event listeners
+    // Add event listeners using TomTom's event names
     const map = mapRef.current;
-    map.on('draw.create', calculateArea);
-    map.on('draw.delete', calculateArea);
-    map.on('draw.update', calculateArea);
+    map.on('drawcreate', calculateArea);
+    map.on('drawdelete', calculateArea);
+    map.on('drawupdate', calculateArea);
 
     return () => {
       if (map && mountedRef.current) {
         try {
-          map.off('draw.create', calculateArea);
-          map.off('draw.delete', calculateArea);
-          map.off('draw.update', calculateArea);
+          map.off('drawcreate', calculateArea);
+          map.off('drawdelete', calculateArea);
+          map.off('drawupdate', calculateArea);
           if (drawRef.current) {
             map.removeControl(drawRef.current);
           }
