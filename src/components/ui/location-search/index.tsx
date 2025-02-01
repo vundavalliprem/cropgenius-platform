@@ -4,6 +4,12 @@ import { SearchResults } from "./SearchResults";
 import { useToast } from "@/components/ui/use-toast";
 import { searchLocation } from "@/services/here";
 
+interface SearchResult {
+  lat: number;
+  lng: number;
+  display_name: string;
+}
+
 interface LocationSearchProps {
   value: string;
   onChange: (value: string) => void;
@@ -12,12 +18,12 @@ interface LocationSearchProps {
 }
 
 export function LocationSearch({ value, onChange, placeholder, className }: LocationSearchProps) {
-  const [results, setResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSearch = async (searchTerm: string) => {
-    if (!searchTerm.trim()) {
+    if (!searchTerm?.trim()) {
       setResults([]);
       return;
     }
@@ -27,11 +33,11 @@ export function LocationSearch({ value, onChange, placeholder, className }: Loca
       const searchResults = await searchLocation(searchTerm);
       
       // Ensure we only keep cloneable data and handle potential undefined values
-      const cleanResults = (searchResults || []).map(result => ({
+      const cleanResults = Array.isArray(searchResults) ? searchResults.map(result => ({
         lat: Number(result.lat) || 0,
         lng: Number(result.lng) || 0,
         display_name: String(result.display_name || '')
-      }));
+      })) : [];
       
       setResults(cleanResults);
     } catch (error) {
