@@ -1,5 +1,6 @@
 import React from 'react';
-import mapboxgl from 'mapbox-gl';
+import tt from '@tomtom-international/web-sdk-maps';
+import '@tomtom-international/web-sdk-maps/dist/maps.css';
 import { Card } from "@/components/ui/dashboard/Card";
 import { Button } from "@/components/ui/button";
 import { useMapInitialization } from './hooks/useMapInitialization';
@@ -37,7 +38,7 @@ export function AreaMap({ className }: AreaMapProps) {
 
   const handleStartDrawing = React.useCallback(() => {
     if (!drawRef.current) return;
-    const drawControl = document.querySelector('.mapbox-gl-draw_polygon');
+    const drawControl = document.querySelector('.tt-draw_polygon');
     if (drawControl) {
       (drawControl as HTMLElement).click();
     }
@@ -45,7 +46,7 @@ export function AreaMap({ className }: AreaMapProps) {
 
   const handleClear = React.useCallback(() => {
     if (!drawRef.current) return;
-    const trashControl = document.querySelector('.mapbox-gl-draw_trash');
+    const trashControl = document.querySelector('.tt-draw_trash');
     if (trashControl) {
       (trashControl as HTMLElement).click();
       setCalculatedArea(null);
@@ -61,7 +62,7 @@ export function AreaMap({ className }: AreaMapProps) {
       mapRef.current.setZoom(15);
 
       // Add marker for current location
-      new mapboxgl.Marker()
+      new tt.Marker()
         .setLngLat(coords)
         .addTo(mapRef.current);
     } catch (error) {
