@@ -12,8 +12,17 @@ serve(async (req) => {
     const { name } = await req.json()
     
     if (!name) {
-      throw new Error('Secret name is required')
+      console.error('Secret name is required but was not provided')
+      return new Response(
+        JSON.stringify({ error: 'Secret name is required' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
     }
+
+    console.log(`Attempting to retrieve secret: ${name}`)
 
     // Create a Supabase client with the service role key
     const supabaseClient = createClient(
@@ -21,38 +30,51 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Query the secrets table with proper error handling
+    // Query the secrets table
     const { data, error } = await supabaseClient
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .maybeSingle() // This ensures we get null if no rows, or error if multiple rows
+      .maybeSingle()
 
     if (error) {
       console.error(`Database error for secret '${name}':`, error)
-      throw error
+      return new Response(
+        JSON.stringify({ error: `Database error: ${error.message}` }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
     }
 
     if (!data) {
-      console.error(`Secret '${name}' not found`)
-      throw new Error(`Secret '${name}' not found`)
+      console.error(`Secret '${name}' not found in database`)
+      return new Response(
+        JSON.stringify({ error: `Secret '${name}' not found` }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        }
+      )
     }
 
+    console.log(`Successfully retrieved secret: ${name}`)
     return new Response(
       JSON.stringify({ value: data.value }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      },
+      }
     )
   } catch (error) {
-    console.error('Error in get-secret function:', error.message)
+    console.error('Error in get-secret function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      },
+        status: 500,
+      }
     )
   }
 })
