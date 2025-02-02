@@ -14,6 +14,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
       if (!mapContainer.current || !isReady || !mountedRef.current) return null;
 
       try {
+        // Get the TomTom API key from Supabase secrets
         const { data: { value: apiKey }, error } = await supabase.functions.invoke('get-secret', {
           body: { name: 'TOMTOM_API_KEY' }
         });
@@ -38,7 +39,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         }
 
         // Create new map instance with the API key
-        const map = tt.map({
+        const map = new tt.map({
           key: apiKey,
           container: mapContainer.current,
           style: 'tomtom://vector/1/basic-main',
@@ -49,9 +50,14 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         // Add navigation control after map loads
         map.on('load', () => {
           if (!mountedRef.current) return;
-          const navControl = new tt.NavigationControl();
-          map.addControl(navControl, 'top-right');
-          navigationControlRef.current = navControl;
+          
+          try {
+            const navControl = new tt.NavigationControl();
+            map.addControl(navControl, 'top-right');
+            navigationControlRef.current = navControl;
+          } catch (error) {
+            console.error('Error adding navigation control:', error);
+          }
         });
 
         mapRef.current = map;
