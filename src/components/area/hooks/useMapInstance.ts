@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
-import tt from '@tomtom-international/web-sdk-maps';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from "@/integrations/supabase/client";
 
 export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, isReady: boolean) {
   const mountedRef = useRef(true);
-  const mapRef = useRef<tt.Map | null>(null);
-  const navigationControlRef = useRef<tt.NavigationControl | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const navigationControlRef = useRef<mapboxgl.NavigationControl | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -14,13 +15,13 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
       if (!mapContainer.current || !isReady || !mountedRef.current) return null;
 
       try {
-        // Get the TomTom API key from Supabase secrets
+        // Get the MapTiler API key from Supabase secrets
         const { data: { value: apiKey }, error } = await supabase.functions.invoke('get-secret', {
-          body: { name: 'TOMTOM_API_KEY' }
+          body: { name: 'MAPTILER_API_KEY' }
         });
 
         if (error || !apiKey) {
-          console.error('Failed to get TomTom API key:', error);
+          console.error('Failed to get MapTiler API key:', error);
           return null;
         }
 
@@ -38,15 +39,14 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           mapRef.current = null;
         }
 
-        // Create new map instance with the API key
-        const map = tt.map({
-          key: apiKey,
+        // Create new map instance with MapTiler
+        mapboxgl.accessToken = 'not-needed';
+        const map = new mapboxgl.Map({
           container: mapContainer.current,
-          style: `https://api.tomtom.com/style/1/style/22.2.1-*?map=basic_main-lite&key=${apiKey}`,
+          style: `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`,
           center: [-95.7129, 37.0902],
           zoom: 15,
           transformRequest: (url: string, resourceType: string) => {
-            // Add CORS headers to the request
             return {
               url: url,
               headers: {
@@ -62,7 +62,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           if (!mountedRef.current) return;
           
           try {
-            const navControl = new tt.NavigationControl();
+            const navControl = new mapboxgl.NavigationControl();
             map.addControl(navControl, 'top-right');
             navigationControlRef.current = navControl;
           } catch (error) {
@@ -72,7 +72,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
 
         // Add error handling for map loading
         map.on('error', (e) => {
-          console.error('TomTom map error:', e);
+          console.error('MapTiler map error:', e);
         });
 
         mapRef.current = map;

@@ -9,11 +9,11 @@ export const useMapInitialization = () => {
     const initializeMap = async () => {
       try {
         const { data: { value: apiKey }, error } = await supabase.functions.invoke('get-secret', {
-          body: { name: 'TOMTOM_API_KEY' }
+          body: { name: 'MAPTILER_API_KEY' }
         });
 
         if (error || !apiKey) {
-          console.error('Failed to get TomTom API key:', error);
+          console.error('Failed to get MapTiler API key:', error);
           setError('Failed to initialize map. Please check your API key configuration.');
           setIsReady(false);
           return;
