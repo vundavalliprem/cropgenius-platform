@@ -42,9 +42,19 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         const map = tt.map({
           key: apiKey,
           container: mapContainer.current,
-          style: 'https://api.tomtom.com/style/1/style/22.2.1-*?map=basic_main-lite&key=' + apiKey,
+          style: `https://api.tomtom.com/style/1/style/22.2.1-*?map=basic_main-lite&key=${apiKey}`,
           center: [-95.7129, 37.0902],
           zoom: 15,
+          transformRequest: (url: string, resourceType: string) => {
+            // Add CORS headers to the request
+            return {
+              url: url,
+              headers: {
+                'Accept': 'application/json',
+                'Origin': window.location.origin
+              }
+            };
+          }
         });
 
         // Add navigation control after map loads
@@ -58,6 +68,11 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           } catch (error) {
             console.error('Error adding navigation control:', error);
           }
+        });
+
+        // Add error handling for map loading
+        map.on('error', (e) => {
+          console.error('TomTom map error:', e);
         });
 
         mapRef.current = map;
