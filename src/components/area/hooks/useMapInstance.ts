@@ -37,7 +37,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           mapRef.current = null;
         }
 
-        // Create new map instance
+        // Create new map instance with the API key
         const map = tt.map({
           key: apiKey,
           container: mapContainer.current,
