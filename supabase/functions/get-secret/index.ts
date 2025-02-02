@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -20,14 +21,22 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Query the secrets table with proper error handling
     const { data, error } = await supabaseClient
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .single()
+      .maybeSingle() // This ensures we get null if no rows, or error if multiple rows
 
-    if (error) throw error
-    if (!data) throw new Error(`Secret '${name}' not found`)
+    if (error) {
+      console.error(`Database error for secret '${name}':`, error)
+      throw error
+    }
+
+    if (!data) {
+      console.error(`Secret '${name}' not found`)
+      throw new Error(`Secret '${name}' not found`)
+    }
 
     return new Response(
       JSON.stringify({ value: data.value }),
@@ -37,6 +46,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in get-secret function:', error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
