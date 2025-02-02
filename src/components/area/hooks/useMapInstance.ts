@@ -39,7 +39,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         }
 
         // Create new map instance with the API key
-        const map = new tt.map({
+        const map = tt.map({
           key: apiKey,
           container: mapContainer.current,
           style: 'tomtom://vector/1/basic-main',
