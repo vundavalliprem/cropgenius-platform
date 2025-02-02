@@ -42,7 +42,7 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         const map = tt.map({
           key: apiKey,
           container: mapContainer.current,
-          style: 'tomtom://vector/1/basic-main',
+          style: 'https://api.tomtom.com/style/1/style/22.2.1-*?map=2/basic_main-lite&key=' + apiKey,
           center: [-95.7129, 37.0902],
           zoom: 15,
         });
