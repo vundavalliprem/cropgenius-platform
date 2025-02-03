@@ -45,7 +45,7 @@ export function useMapInstance(
         const map = tt.map({
           key: data.value,
           container: mapContainer.current,
-          style: `https://api.maptiler.com/maps/satellite/style.json?key=${data.value}`,
+          style: 'https://api.tomtom.com/style/1/style/22.2.1-9?map=2/basic_street-satellite&key=' + data.value,
           zoom: 1,
           center: [0, 0]
         });
