@@ -30,12 +30,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Query the secrets table
+    // Query the secrets table with proper error handling
     const { data, error } = await supabaseClient
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error(`Database error for secret '${name}':`, error)
