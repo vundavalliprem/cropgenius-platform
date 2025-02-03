@@ -16,13 +16,13 @@ export function useMapInstance(
 
     const initializeMap = async () => {
       try {
-        console.log('Fetching MapTiler API key...');
+        console.log('Fetching TomTom API key...');
         const { data, error } = await supabase.functions.invoke('get-secret', {
-          body: { name: 'MAPTILER_API_KEY' }
+          body: { name: 'TOMTOM_API_KEY' }
         });
 
         if (error) {
-          console.error('Failed to get MapTiler API key:', error);
+          console.error('Failed to get TomTom API key:', error);
           toast({
             title: "Error",
             description: "Failed to initialize map. Please try again later.",
@@ -32,7 +32,7 @@ export function useMapInstance(
         }
 
         if (!data?.value) {
-          console.error('MapTiler API key not found');
+          console.error('TomTom API key not found');
           toast({
             title: "Error",
             description: "Map configuration is missing. Please contact support.",
@@ -41,11 +41,11 @@ export function useMapInstance(
           return;
         }
 
-        console.log('Initializing map with MapTiler style...');
+        console.log('Initializing map with TomTom style...');
         const map = tt.map({
           key: data.value,
           container: mapContainer.current,
-          style: 'https://api.tomtom.com/style/1/style/22.2.1-9?map=2/basic_street-satellite&key=' + data.value,
+          style: 'https://api.tomtom.com/style/1/style/22.2.1-9?map=basic_satellite&key=' + data.value,
           zoom: 1,
           center: [0, 0]
         });
