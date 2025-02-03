@@ -6,7 +6,7 @@ export function useMapInstance(
   mapContainer: React.RefObject<HTMLDivElement>,
   isReady: boolean
 ) {
-  const mapRef = useRef<tt.Map | null>(null);
+  const mapRef = useRef<tt.map | null>(null);
   const mountedRef = useRef(false);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function useMapInstance(
         }
 
         // Initialize map with MapTiler satellite style
-        mapRef.current = new tt.Map({
+        mapRef.current = new tt.map({
           container: mapContainer.current,
           style: `https://api.maptiler.com/maps/satellite/style.json?key=${apiKey}`,
           zoom: 1,
