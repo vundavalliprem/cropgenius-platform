@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Command } from "@/components/ui/command";
+import { Command, CommandInput, CommandList } from "@/components/ui/command";
 import { SearchResults } from './SearchResults';
 import { searchLocation } from '@/services/here';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -25,7 +25,7 @@ export function LocationSearch({
   const [isLoading, setIsLoading] = useState(false);
 
   const debouncedSearch = useDebounce(async (query: string) => {
-    if (!query.trim()) {
+    if (!query?.trim()) {
       setResults([]);
       return;
     }
@@ -49,19 +49,23 @@ export function LocationSearch({
 
   return (
     <Command className={className}>
-      <Command.Input
+      <CommandInput
         value={value}
         onValueChange={handleSearch}
         placeholder={placeholder}
         className="h-9"
       />
       {(results.length > 0 || isLoading) && (
-        <Command.List className="max-h-[200px] overflow-y-auto">
-          <SearchResults results={results} isLoading={isLoading} onSelect={(location) => {
-            onChange(location.display_name);
-            setResults([]);
-          }} />
-        </Command.List>
+        <CommandList className="max-h-[200px] overflow-y-auto">
+          <SearchResults 
+            results={results} 
+            isLoading={isLoading} 
+            onSelect={(location) => {
+              onChange(location.display_name);
+              setResults([]);
+            }} 
+          />
+        </CommandList>
       )}
     </Command>
   );
