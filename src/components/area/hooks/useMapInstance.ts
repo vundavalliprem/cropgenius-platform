@@ -39,11 +39,11 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
           mapRef.current = null;
         }
 
-        // Create new map instance with MapTiler
+        // Create new map instance with MapTiler satellite style
         mapboxgl.accessToken = 'not-needed';
         const map = new mapboxgl.Map({
           container: mapContainer.current,
-          style: `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`,
+          style: `https://api.maptiler.com/maps/satellite/style.json?key=${apiKey}`,
           center: [-95.7129, 37.0902],
           zoom: 15,
           transformRequest: (url: string, resourceType: string) => {
