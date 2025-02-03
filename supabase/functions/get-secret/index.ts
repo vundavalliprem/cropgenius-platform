@@ -35,7 +35,7 @@ serve(async (req) => {
       .from('secrets')
       .select('value')
       .eq('name', name)
-      .maybeSingle()
+      .single()
 
     if (error) {
       console.error(`Database error for secret '${name}':`, error)
