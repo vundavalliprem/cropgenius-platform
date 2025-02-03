@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
-import * as tt from '@tomtom-international/web-sdk-maps';
+import tt from '@tomtom-international/web-sdk-maps';
 import { supabase } from "@/integrations/supabase/client";
 
 export function useMapInstance(
   mapContainer: React.RefObject<HTMLDivElement>,
   isReady: boolean
 ) {
-  const mapRef = useRef<tt.default.Map | null>(null);
+  const mapRef = useRef<tt.Map | null>(null);
   const mountedRef = useRef(false);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function useMapInstance(
         }
 
         // Initialize map with MapTiler satellite style
-        mapRef.current = new tt.default.Map({
+        mapRef.current = new tt.Map({
           container: mapContainer.current,
           style: `https://api.maptiler.com/maps/satellite/style.json?key=${apiKey}`,
           zoom: 1,
@@ -32,7 +32,7 @@ export function useMapInstance(
         });
 
         // Add navigation controls
-        mapRef.current.addControl(new tt.default.NavigationControl());
+        mapRef.current.addControl(new tt.NavigationControl());
 
         mountedRef.current = true;
       } catch (err) {
