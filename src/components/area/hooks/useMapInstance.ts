@@ -6,7 +6,7 @@ export function useMapInstance(
   mapContainer: React.RefObject<HTMLDivElement>,
   isReady: boolean
 ) {
-  const mapRef = useRef<tt.map | null>(null);
+  const mapRef = useRef<tt.Map | null>(null);
   const mountedRef = useRef(false);
 
   useEffect(() => {
@@ -24,11 +24,12 @@ export function useMapInstance(
         }
 
         // Initialize map with MapTiler satellite style
-        mapRef.current = new tt.map({
+        mapRef.current = tt.map({
           container: mapContainer.current,
           style: `https://api.maptiler.com/maps/satellite/style.json?key=${apiKey}`,
           zoom: 1,
           center: [0, 0],
+          key: apiKey
         });
 
         // Add navigation controls
