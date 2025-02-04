@@ -35,7 +35,7 @@ export function useMapInstance(
         const map = tt.map({
           key: apiKey,
           container: mapContainer.current,
-          style: `https://api.tomtom.com/style/1/style/22.2.1-9?map=basic_satellite&key=${apiKey}`,
+          style: 'tomtom://vector/1/basic-main',
           zoom: 1,
           center: [0, 0]
         });
