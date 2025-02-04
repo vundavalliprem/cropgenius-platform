@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import tt from '@tomtom-international/web-sdk-maps';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -7,7 +8,7 @@ export function useMapInstance(
   mapContainer: React.RefObject<HTMLDivElement>,
   isReady: boolean
 ) {
-  const mapRef = useRef<tt.Map | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const mountedRef = useRef(false);
   const { toast } = useToast();
 
@@ -16,13 +17,13 @@ export function useMapInstance(
 
     const initializeMap = async () => {
       try {
-        console.log('Fetching TomTom API key...');
-        const { data: { value: apiKey }, error } = await supabase.functions.invoke('get-secret', {
-          body: { name: 'TOMTOM_API_KEY' }
+        console.log('Fetching Mapbox access token...');
+        const { data: { value: accessToken }, error } = await supabase.functions.invoke('get-secret', {
+          body: { name: 'MAPBOX_ACCESS_TOKEN' }
         });
 
-        if (error || !apiKey) {
-          console.error('Failed to get TomTom API key:', error);
+        if (error || !accessToken) {
+          console.error('Failed to get Mapbox access token:', error);
           toast({
             title: "Error",
             description: "Failed to initialize map. Please try again later.",
@@ -31,17 +32,18 @@ export function useMapInstance(
           return;
         }
 
-        console.log('Initializing map with TomTom satellite style...');
-        const map = tt.map({
-          key: apiKey,
+        console.log('Initializing map with Mapbox satellite style...');
+        mapboxgl.accessToken = accessToken;
+        
+        const map = new mapboxgl.Map({
           container: mapContainer.current,
-          style: `https://api.tomtom.com/style/1/style/22.2.1-9?map=basic_satellite&key=${apiKey}`,
+          style: 'mapbox://styles/mapbox/satellite-v9',
           zoom: 1,
           center: [0, 0]
         });
 
-        map.addControl(new tt.NavigationControl());
-        mapRef.current = map;
+        map.addControl(new mapboxgl.NavigationControl());
+        mapRef.current = map as any; // Type cast to work with existing draw controls
         mountedRef.current = true;
         
         console.log('Map initialized successfully');
