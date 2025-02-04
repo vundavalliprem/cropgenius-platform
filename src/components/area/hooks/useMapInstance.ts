@@ -17,11 +17,11 @@ export function useMapInstance(
     const initializeMap = async () => {
       try {
         console.log('Fetching TomTom API key...');
-        const { data, error } = await supabase.functions.invoke('get-secret', {
+        const { data: { value: apiKey }, error } = await supabase.functions.invoke('get-secret', {
           body: { name: 'TOMTOM_API_KEY' }
         });
 
-        if (error) {
+        if (error || !apiKey) {
           console.error('Failed to get TomTom API key:', error);
           toast({
             title: "Error",
@@ -31,21 +31,11 @@ export function useMapInstance(
           return;
         }
 
-        if (!data?.value) {
-          console.error('TomTom API key not found');
-          toast({
-            title: "Error",
-            description: "Map configuration is missing. Please contact support.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('Initializing map with TomTom style...');
+        console.log('Initializing map with TomTom satellite style...');
         const map = tt.map({
-          key: data.value,
+          key: apiKey,
           container: mapContainer.current,
-          style: 'https://api.tomtom.com/style/1/style/22.2.1-9?map=basic_satellite&key=' + data.value,
+          style: `https://api.tomtom.com/style/1/style/22.2.1-9?map=basic_satellite&key=${apiKey}`,
           zoom: 1,
           center: [0, 0]
         });
