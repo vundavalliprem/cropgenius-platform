@@ -1,6 +1,1 @@
-[functions]
-[functions.get-secret]
-verify_jwt = false
-
-[functions.get-commodity-prices]
-verify_jwt = false
+project_id = "qucfdnykdsjmyggunyat"

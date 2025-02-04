@@ -1,34 +1,20 @@
 import { useState, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
+import mapboxgl from 'mapbox-gl';
 
 export const useMapInitialization = () => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const initializeMap = async () => {
-      try {
-        const { data: { value: apiKey }, error } = await supabase.functions.invoke('get-secret', {
-          body: { name: 'MAPTILER_API_KEY' }
-        });
-
-        if (error || !apiKey) {
-          console.error('Failed to get MapTiler API key:', error);
-          setError('Failed to initialize map. Please check your API key configuration.');
-          setIsReady(false);
-          return;
-        }
-
-        setIsReady(true);
-        setError(null);
-      } catch (err) {
-        console.error('Map initialization error:', err);
-        setError('Failed to initialize map. Please try again later.');
-        setIsReady(false);
-      }
-    };
-
-    initializeMap();
+    try {
+      mapboxgl.accessToken = 'pk.eyJ1IjoidnVuZGF2YWxsaXByZW0iLCJhIjoiY201bzI3M3pjMGdwZDJqczh0dzl0OXVveSJ9.YyEzTyV_TdB8lcKibGn5Yg';
+      setIsReady(true);
+      setError(null);
+    } catch (err) {
+      console.error('Map initialization error:', err);
+      setError('Failed to initialize map. Please try again later.');
+      setIsReady(false);
+    }
   }, []);
 
   return {

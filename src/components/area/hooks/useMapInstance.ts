@@ -1,75 +1,70 @@
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 
-export function useMapInstance(
-  mapContainer: React.RefObject<HTMLDivElement>,
-  isReady: boolean
-) {
+export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, isReady: boolean) {
+  const mountedRef = useRef(true);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const mountedRef = useRef(false);
-  const { toast } = useToast();
+  const navigationControlRef = useRef<mapboxgl.NavigationControl | null>(null);
 
   useEffect(() => {
-    if (!isReady || !mapContainer.current || mapRef.current || mountedRef.current) return;
+    mountedRef.current = true;
 
-    const initializeMap = async () => {
-      try {
-        console.log('Fetching Mapbox access token...');
-        const { data: { value: accessToken }, error } = await supabase.functions.invoke('get-secret', {
-          body: { name: 'MAPBOX_ACCESS_TOKEN' }
-        });
+    const initMap = () => {
+      if (!mapContainer.current || !isReady || !mountedRef.current) return null;
 
-        if (error || !accessToken) {
-          console.error('Failed to get Mapbox access token:', error);
-          toast({
-            title: "Error",
-            description: "Failed to initialize map. Please try again later.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('Initializing map with Mapbox satellite style...');
-        mapboxgl.accessToken = accessToken;
-        
-        const map = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/satellite-v9',
-          zoom: 1,
-          center: [0, 0]
-        });
-
-        map.addControl(new mapboxgl.NavigationControl());
-        mapRef.current = map as any; // Type cast to work with existing draw controls
-        mountedRef.current = true;
-        
-        console.log('Map initialized successfully');
-      } catch (err) {
-        console.error('Map initialization error:', err);
-        toast({
-          title: "Error",
-          description: "Failed to initialize map. Please try again later.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    initializeMap();
-
-    return () => {
+      // Cleanup existing map instance
       if (mapRef.current) {
+        if (navigationControlRef.current) {
+          try {
+            mapRef.current.removeControl(navigationControlRef.current);
+          } catch (error) {
+            console.error('Error removing navigation control:', error);
+          }
+          navigationControlRef.current = null;
+        }
         mapRef.current.remove();
         mapRef.current = null;
       }
-      mountedRef.current = false;
-    };
-  }, [isReady, mapContainer, toast]);
 
-  return {
-    mapRef,
-    mountedRef,
-  };
+      // Create new map instance with a style that includes labels
+      const map = new mapboxgl.Map({
+        container: mapContainer.current,
+        // Using satellite-streets-v12 style which includes terrain and labels
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: [-95.7129, 37.0902],
+        zoom: 15,
+      });
+
+      // Add navigation control after map loads
+      map.on('load', () => {
+        if (!mountedRef.current) return;
+        const navControl = new mapboxgl.NavigationControl();
+        map.addControl(navControl, 'top-right');
+        navigationControlRef.current = navControl;
+      });
+
+      mapRef.current = map;
+      return map;
+    };
+
+    const map = initMap();
+
+    return () => {
+      mountedRef.current = false;
+      if (mapRef.current) {
+        try {
+          if (navigationControlRef.current) {
+            mapRef.current.removeControl(navigationControlRef.current);
+            navigationControlRef.current = null;
+          }
+          mapRef.current.remove();
+        } catch (error) {
+          console.error('Map cleanup error:', error);
+        }
+        mapRef.current = null;
+      }
+    };
+  }, [isReady, mapContainer]);
+
+  return { mapRef, mountedRef };
 }

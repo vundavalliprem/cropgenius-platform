@@ -1,21 +1,14 @@
 import { useEffect, useRef } from 'react';
-import tt from '@tomtom-international/web-sdk-maps';
+import mapboxgl from 'mapbox-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import * as turf from '@turf/turf';
 import { AreaUnit, UNITS } from './useAreaCalculation';
 
 interface UseDrawControlsProps {
-  mapRef: React.MutableRefObject<tt.Map>;
+  mapRef: React.RefObject<mapboxgl.Map>;
   mountedRef: React.RefObject<boolean>;
   onAreaUpdate: (area: number | null) => void;
   selectedUnit: AreaUnit;
-}
-
-// Define custom event types for draw events
-interface DrawEvent {
-  features: any[];
-  target: tt.Map;
-  type: string;
 }
 
 export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit }: UseDrawControlsProps) {
@@ -56,7 +49,7 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
                 ? `${length.toFixed(2)} km`
                 : `${(length * 1000).toFixed(0)} m`;
 
-              new tt.Marker({
+              new mapboxgl.Marker({
                 element: createLengthLabel(displayLength),
                 anchor: 'center'
               })
@@ -123,20 +116,18 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
     mapRef.current.addControl(draw, 'top-left');
     drawRef.current = draw;
 
-    // Add event listeners using TomTom's event names with type assertion
+    // Add event listeners
     const map = mapRef.current;
-    const handleDrawEvent = (e: DrawEvent) => calculateArea();
-
-    map.on('draw.create' as any, handleDrawEvent);
-    map.on('draw.delete' as any, handleDrawEvent);
-    map.on('draw.update' as any, handleDrawEvent);
+    map.on('draw.create', calculateArea);
+    map.on('draw.delete', calculateArea);
+    map.on('draw.update', calculateArea);
 
     return () => {
       if (map && mountedRef.current) {
         try {
-          map.off('draw.create' as any, handleDrawEvent);
-          map.off('draw.delete' as any, handleDrawEvent);
-          map.off('draw.update' as any, handleDrawEvent);
+          map.off('draw.create', calculateArea);
+          map.off('draw.delete', calculateArea);
+          map.off('draw.update', calculateArea);
           if (drawRef.current) {
             map.removeControl(drawRef.current);
           }

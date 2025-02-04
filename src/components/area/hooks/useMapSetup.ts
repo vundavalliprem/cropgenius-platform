@@ -1,7 +1,6 @@
 import { useMapInstance } from './useMapInstance';
 import { useDrawControls } from './useDrawControls';
 import { AreaUnit } from './useAreaCalculation';
-import tt from '@tomtom-international/web-sdk-maps';
 
 interface UseMapSetupProps {
   isReady: boolean;
@@ -17,19 +16,15 @@ export function useMapSetup({
   mapContainer
 }: UseMapSetupProps) {
   const { mapRef, mountedRef } = useMapInstance(mapContainer, isReady);
-
-  // Cast mapRef to the correct TomTom Map type and ensure it's properly typed for the draw controls
-  const tomtomMapRef = mapRef as unknown as React.MutableRefObject<tt.Map>;
-
   const drawRef = useDrawControls({
-    mapRef: tomtomMapRef,
+    mapRef,
     mountedRef,
     onAreaUpdate: setCalculatedArea,
     selectedUnit,
   });
 
   return {
-    mapRef: tomtomMapRef,
+    mapRef,
     drawRef,
   };
 }

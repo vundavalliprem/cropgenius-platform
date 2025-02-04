@@ -3,6 +3,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useMapInitialization } from '../area/hooks/useMapInitialization';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useWeatherData } from '@/services/openWeather';
 import { AlertCircle, MapPin, Search, Star } from 'lucide-react';
@@ -10,7 +11,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FavoriteCities } from './FavoriteCities';
 import { supabase } from "@/integrations/supabase/client";
 import mapboxgl from 'mapbox-gl';
-import { LocationSearch } from '@/components/ui/location-search';
 
 interface WeatherMapProps {
   className?: string;
@@ -208,11 +208,11 @@ export function WeatherMap({ className, onLocationChange }: WeatherMapProps) {
         <div className="flex gap-2">
           <div className="flex-1">
             <div className="flex gap-2">
-              <LocationSearch
-                value={searchQuery}
-                onChange={setSearchQuery}
+              <Input
                 placeholder="Search for a city..."
-                className="flex-1"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
               <Button onClick={handleSearch} variant="outline">
                 <Search className="h-4 w-4" />
