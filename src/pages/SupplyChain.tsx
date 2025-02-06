@@ -1,3 +1,4 @@
+
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { LogisticsMap } from "@/components/supply-chain/LogisticsMap";
 import { DemandForecast } from "@/components/supply-chain/DemandForecast";
@@ -12,8 +13,8 @@ const SupplyChain = () => {
           <p className="text-gray-600">Track shipments and optimize your logistics operations</p>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <LogisticsMap className="lg:col-span-2" />
+        <div className="space-y-6">
+          <LogisticsMap />
           <DemandForecast />
           <RouteOptimization />
         </div>

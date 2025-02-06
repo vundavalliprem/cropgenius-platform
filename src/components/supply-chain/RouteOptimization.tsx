@@ -1,8 +1,11 @@
+
 import { Card } from "@/components/ui/dashboard/Card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MapPin, Truck, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const routes = [
   {
@@ -38,6 +41,43 @@ const routes = [
 ];
 
 export function RouteOptimization() {
+  const [source, setSource] = useState("");
+  const [destination, setDestination] = useState("");
+
+  const handlePlanRoute = () => {
+    if (!source || !destination) {
+      toast({
+        title: "Error",
+        description: "Please enter both source and destination locations.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Add the new route to the beginning of the routes array
+    const newRoute = {
+      id: Date.now(),
+      from: source,
+      to: destination,
+      efficiency: 90,
+      savings: 1000,
+      status: "Scheduled",
+      alerts: [],
+      eta: "Calculating...",
+    };
+
+    routes.unshift(newRoute);
+    
+    // Clear the inputs
+    setSource("");
+    setDestination("");
+
+    toast({
+      title: "Route Planned",
+      description: "New route has been successfully planned.",
+    });
+  };
+
   return (
     <Card title="Route Optimization" description="Plan and track your deliveries">
       <div className="space-y-6">
@@ -46,14 +86,25 @@ export function RouteOptimization() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="text-sm font-medium mb-1 block">Source Location</label>
-              <Input placeholder="Enter farm location" />
+              <Input 
+                placeholder="Enter farm location" 
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+              />
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Destination</label>
-              <Input placeholder="Enter market location" />
+              <Input 
+                placeholder="Enter market location" 
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+              />
             </div>
           </div>
-          <Button className="w-full md:w-auto">
+          <Button 
+            className="w-full md:w-auto"
+            onClick={handlePlanRoute}
+          >
             <Truck className="mr-2 h-4 w-4" />
             Plan Route
           </Button>

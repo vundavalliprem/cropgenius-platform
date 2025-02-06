@@ -1,3 +1,4 @@
+
 import React from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { AreaMap } from "@/components/area/AreaMap";
@@ -15,12 +16,10 @@ export default function AreaCalculator() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-6">
           <AreaMap />
-          <div className="space-y-6">
-            <SavedAreas />
-            <Recommendations />
-          </div>
+          <SavedAreas />
+          <Recommendations />
         </div>
       </div>
     </DashboardLayout>
