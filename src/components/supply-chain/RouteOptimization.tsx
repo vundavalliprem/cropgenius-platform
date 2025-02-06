@@ -39,7 +39,10 @@ export function RouteOptimization() {
         });
         return;
       }
-      setMapboxToken(data);
+      if (data) {
+        console.log("Mapbox token fetched successfully");
+        setMapboxToken(data);
+      }
     }
     fetchMapboxToken();
   }, []);
@@ -138,6 +141,7 @@ export function RouteOptimization() {
           from_coordinates: `(${sourceLng},${sourceLat})`,
           to_coordinates: `(${destLng},${destLat})`,
           alerts: [],
+          status: 'planned'
         });
 
       if (error) throw error;
@@ -189,7 +193,7 @@ export function RouteOptimization() {
           <Button 
             className="w-full md:w-auto"
             onClick={handlePlanRoute}
-            disabled={isPlanning || !mapboxToken}
+            disabled={!source || !destination || isPlanning || !mapboxToken}
           >
             {isPlanning ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
