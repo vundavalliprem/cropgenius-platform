@@ -21,7 +21,7 @@ interface Route {
   estimated_duration: number;
 }
 
-const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+const MAPBOX_ACCESS_TOKEN = import.meta.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 export function RouteOptimization() {
   const [source, setSource] = useState("");
