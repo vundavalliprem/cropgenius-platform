@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/dashboard/Card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -29,6 +28,7 @@ export function RouteOptimization() {
 
   useEffect(() => {
     async function fetchMapboxToken() {
+      console.log("Fetching Mapbox token...");
       const { data, error } = await supabase.rpc('get_mapbox_token');
       if (error) {
         console.error('Error fetching Mapbox token:', error);
@@ -42,6 +42,8 @@ export function RouteOptimization() {
       if (data) {
         console.log("Mapbox token fetched successfully");
         setMapboxToken(data);
+      } else {
+        console.log("No Mapbox token received from Supabase");
       }
     }
     fetchMapboxToken();
@@ -92,6 +94,7 @@ export function RouteOptimization() {
     }
 
     if (!mapboxToken) {
+      console.log("No Mapbox token available:", { source, destination, mapboxToken });
       toast({
         title: "Error",
         description: "Map service is not configured properly. Please try again later.",
@@ -166,6 +169,8 @@ export function RouteOptimization() {
       setIsPlanning(false);
     }
   };
+
+  console.log("Current state:", { source, destination, isPlanning, hasMapboxToken: !!mapboxToken });
 
   return (
     <Card title="Route Optimization" description={`${routes.length} routes planned`}>
