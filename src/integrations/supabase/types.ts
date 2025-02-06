@@ -90,6 +90,51 @@ export type Database = {
         }
         Relationships: []
       }
+      routes: {
+        Row: {
+          alerts: string[] | null
+          created_at: string | null
+          distance: number
+          efficiency: number
+          estimated_duration: number
+          from_coordinates: unknown | null
+          from_location: string
+          id: number
+          savings: number
+          status: string
+          to_coordinates: unknown | null
+          to_location: string
+        }
+        Insert: {
+          alerts?: string[] | null
+          created_at?: string | null
+          distance: number
+          efficiency: number
+          estimated_duration: number
+          from_coordinates?: unknown | null
+          from_location: string
+          id?: never
+          savings: number
+          status?: string
+          to_coordinates?: unknown | null
+          to_location: string
+        }
+        Update: {
+          alerts?: string[] | null
+          created_at?: string | null
+          distance?: number
+          efficiency?: number
+          estimated_duration?: number
+          from_coordinates?: unknown | null
+          from_location?: string
+          id?: never
+          savings?: number
+          status?: string
+          to_coordinates?: unknown | null
+          to_location?: string
+        }
+        Relationships: []
+      }
       saved_areas: {
         Row: {
           area: number

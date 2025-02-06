@@ -3,48 +3,66 @@ import { Card } from "@/components/ui/dashboard/Card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MapPin, Truck, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { MapPin, Truck, AlertTriangle, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
-const routes = [
-  {
-    id: 1,
-    from: "Farm Location A",
-    to: "Central Market",
-    efficiency: 92,
-    savings: 1200,
-    status: "In Transit",
-    alerts: ["Heavy traffic on highway"],
-    eta: "2 hours",
-  },
-  {
-    id: 2,
-    from: "Farm Location B",
-    to: "Wholesale Market",
-    efficiency: 88,
-    savings: 800,
-    status: "Scheduled",
-    alerts: ["Weather alert: Rain expected"],
-    eta: "4 hours",
-  },
-  {
-    id: 3,
-    from: "Farm Location C",
-    to: "Distribution Center",
-    efficiency: 95,
-    savings: 1500,
-    status: "Completed",
-    alerts: [],
-    eta: "Delivered",
-  },
-];
+interface Route {
+  id: number;
+  from_location: string;
+  to_location: string;
+  efficiency: number;
+  savings: number;
+  status: string;
+  alerts: string[];
+  distance: number;
+  estimated_duration: number;
+}
+
+const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 export function RouteOptimization() {
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
+  const [isPlanning, setIsPlanning] = useState(false);
 
-  const handlePlanRoute = () => {
+  // Fetch routes from Supabase
+  const { data: routes = [], refetch } = useQuery({
+    queryKey: ['routes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('routes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as Route[];
+    }
+  });
+
+  const calculateEfficiency = (distance: number, duration: number) => {
+    // Basic efficiency calculation based on distance and duration
+    const averageSpeed = distance / (duration / 60); // km/h
+    const optimalSpeed = 60; // Assumed optimal speed
+    const efficiency = Math.min(100, Math.round((optimalSpeed / Math.abs(averageSpeed - optimalSpeed)) * 100));
+    return efficiency;
+  };
+
+  const calculateSavings = (distance: number, efficiency: number) => {
+    // Basic savings calculation based on distance and efficiency
+    const fuelCost = 100; // Cost per km in rupees
+    return Math.round((distance * fuelCost * efficiency) / 100);
+  };
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+  };
+
+  const handlePlanRoute = async () => {
     if (!source || !destination) {
       toast({
         title: "Error",
@@ -54,32 +72,74 @@ export function RouteOptimization() {
       return;
     }
 
-    // Add the new route to the beginning of the routes array
-    const newRoute = {
-      id: Date.now(),
-      from: source,
-      to: destination,
-      efficiency: 90,
-      savings: 1000,
-      status: "Scheduled",
-      alerts: [],
-      eta: "Calculating...",
-    };
+    setIsPlanning(true);
 
-    routes.unshift(newRoute);
-    
-    // Clear the inputs
-    setSource("");
-    setDestination("");
+    try {
+      // Get coordinates for source
+      const sourceRes = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(source)}.json?access_token=${MAPBOX_ACCESS_TOKEN}`
+      );
+      const sourceData = await sourceRes.json();
+      const [sourceLng, sourceLat] = sourceData.features[0].center;
 
-    toast({
-      title: "Route Planned",
-      description: "New route has been successfully planned.",
-    });
+      // Get coordinates for destination
+      const destRes = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destination)}.json?access_token=${MAPBOX_ACCESS_TOKEN}`
+      );
+      const destData = await destRes.json();
+      const [destLng, destLat] = destData.features[0].center;
+
+      // Get route details using Mapbox Directions API
+      const routeRes = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${sourceLng},${sourceLat};${destLng},${destLat}?access_token=${MAPBOX_ACCESS_TOKEN}`
+      );
+      const routeData = await routeRes.json();
+
+      const distance = Math.round(routeData.routes[0].distance / 1000); // Convert to km
+      const duration = Math.round(routeData.routes[0].duration / 60); // Convert to minutes
+      const efficiency = calculateEfficiency(distance, duration);
+      const savings = calculateSavings(distance, efficiency);
+
+      // Insert new route into Supabase
+      const { error } = await supabase
+        .from('routes')
+        .insert({
+          from_location: source,
+          to_location: destination,
+          distance,
+          estimated_duration: duration,
+          efficiency,
+          savings,
+          from_coordinates: `(${sourceLng},${sourceLat})`,
+          to_coordinates: `(${destLng},${destLat})`,
+          alerts: [],
+        });
+
+      if (error) throw error;
+
+      // Clear inputs and refetch routes
+      setSource("");
+      setDestination("");
+      refetch();
+
+      toast({
+        title: "Route Planned",
+        description: "New route has been successfully planned.",
+      });
+    } catch (error) {
+      console.error('Error planning route:', error);
+      toast({
+        title: "Error",
+        description: "Failed to plan route. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPlanning(false);
+    }
   };
 
   return (
-    <Card title="Route Optimization" description="Plan and track your deliveries">
+    <Card title="Route Optimization" description={`${routes.length} routes planned`}>
       <div className="space-y-6">
         <div className="grid gap-4 p-4 bg-accent rounded-lg">
           <h3 className="font-medium text-primary-600">Plan New Delivery</h3>
@@ -87,7 +147,7 @@ export function RouteOptimization() {
             <div>
               <label className="text-sm font-medium mb-1 block">Source Location</label>
               <Input 
-                placeholder="Enter farm location" 
+                placeholder="Enter source location" 
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
               />
@@ -95,7 +155,7 @@ export function RouteOptimization() {
             <div>
               <label className="text-sm font-medium mb-1 block">Destination</label>
               <Input 
-                placeholder="Enter market location" 
+                placeholder="Enter destination location" 
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
               />
@@ -104,9 +164,14 @@ export function RouteOptimization() {
           <Button 
             className="w-full md:w-auto"
             onClick={handlePlanRoute}
+            disabled={isPlanning}
           >
-            <Truck className="mr-2 h-4 w-4" />
-            Plan Route
+            {isPlanning ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Truck className="mr-2 h-4 w-4" />
+            )}
+            {isPlanning ? "Planning Route..." : "Plan Route"}
           </Button>
         </div>
 
@@ -117,18 +182,18 @@ export function RouteOptimization() {
                 <div>
                   <h4 className="font-medium text-primary-600">
                     <MapPin className="inline-block mr-1 h-4 w-4" />
-                    {route.from} → {route.to}
+                    {route.from_location} → {route.to_location}
                   </h4>
                   <p className="text-sm text-gray-500">
-                    Status: {route.status} • ETA: {route.eta}
+                    Status: {route.status} • Distance: {route.distance}km • ETA: {formatDuration(route.estimated_duration)}
                   </p>
                 </div>
                 <span className="text-sm font-medium text-green-600">
-                  ₹{route.savings} saved
+                  ₹{route.savings.toLocaleString()} saved
                 </span>
               </div>
               
-              {route.alerts.length > 0 && (
+              {route.alerts && route.alerts.length > 0 && (
                 <div className="mb-2 p-2 bg-yellow-50 rounded text-sm">
                   <AlertTriangle className="inline-block mr-1 h-4 w-4 text-yellow-500" />
                   {route.alerts.join(", ")}
@@ -146,17 +211,19 @@ export function RouteOptimization() {
           ))}
         </div>
 
-        <div className="p-4 bg-primary-100 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="font-medium text-primary-600">Total Savings</span>
-            <span className="text-lg font-bold text-primary-600">
-              ₹{routes.reduce((acc, route) => acc + route.savings, 0).toLocaleString()}
-            </span>
+        {routes.length > 0 && (
+          <div className="p-4 bg-primary-100 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-primary-600">Total Savings</span>
+              <span className="text-lg font-bold text-primary-600">
+                ₹{routes.reduce((acc, route) => acc + route.savings, 0).toLocaleString()}
+              </span>
+            </div>
+            <p className="text-sm text-primary-700 mt-2">
+              Total Distance: {routes.reduce((acc, route) => acc + route.distance, 0).toLocaleString()}km
+            </p>
           </div>
-          <p className="text-sm text-primary-700 mt-2">
-            Savings breakdown: Fuel (40%), Time (35%), Operations (25%)
-          </p>
-        </div>
+        )}
       </div>
     </Card>
   );
