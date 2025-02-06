@@ -21,12 +21,28 @@ interface Route {
   estimated_duration: number;
 }
 
-const MAPBOX_ACCESS_TOKEN = import.meta.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
 export function RouteOptimization() {
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
   const [isPlanning, setIsPlanning] = useState(false);
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchMapboxToken() {
+      const { data, error } = await supabase.rpc('get_mapbox_token');
+      if (error) {
+        console.error('Error fetching Mapbox token:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load map configuration. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setMapboxToken(data);
+    }
+    fetchMapboxToken();
+  }, []);
 
   // Fetch routes from Supabase
   const { data: routes = [], refetch } = useQuery({
@@ -72,26 +88,35 @@ export function RouteOptimization() {
       return;
     }
 
+    if (!mapboxToken) {
+      toast({
+        title: "Error",
+        description: "Map service is not configured properly. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsPlanning(true);
 
     try {
       // Get coordinates for source
       const sourceRes = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(source)}.json?access_token=${MAPBOX_ACCESS_TOKEN}`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(source)}.json?access_token=${mapboxToken}`
       );
       const sourceData = await sourceRes.json();
       const [sourceLng, sourceLat] = sourceData.features[0].center;
 
       // Get coordinates for destination
       const destRes = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destination)}.json?access_token=${MAPBOX_ACCESS_TOKEN}`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destination)}.json?access_token=${mapboxToken}`
       );
       const destData = await destRes.json();
       const [destLng, destLat] = destData.features[0].center;
 
       // Get route details using Mapbox Directions API
       const routeRes = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${sourceLng},${sourceLat};${destLng},${destLat}?access_token=${MAPBOX_ACCESS_TOKEN}`
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${sourceLng},${sourceLat};${destLng},${destLat}?access_token=${mapboxToken}`
       );
       const routeData = await routeRes.json();
 
@@ -164,7 +189,7 @@ export function RouteOptimization() {
           <Button 
             className="w-full md:w-auto"
             onClick={handlePlanRoute}
-            disabled={isPlanning}
+            disabled={isPlanning || !mapboxToken}
           >
             {isPlanning ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
