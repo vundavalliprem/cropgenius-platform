@@ -1,13 +1,19 @@
 
 import { Card } from "@/components/ui/dashboard/Card";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MapPin, Truck, AlertTriangle, Loader2 } from "lucide-react";
+import { Truck, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { LocationInput } from "./components/LocationInput";
+import { RouteList } from "./components/RouteList";
+import { RouteStats } from "./components/RouteStats";
+
+interface LocationSuggestion {
+  place_name: string;
+  center: [number, number];
+}
 
 interface Route {
   id: number;
@@ -19,11 +25,6 @@ interface Route {
   alerts: string[];
   distance: number;
   estimated_duration: number;
-}
-
-interface LocationSuggestion {
-  place_name: string;
-  center: [number, number];
 }
 
 export function RouteOptimization() {
@@ -38,7 +39,6 @@ export function RouteOptimization() {
 
   useEffect(() => {
     async function fetchMapboxToken() {
-      console.log("Fetching Mapbox token...");
       const { data, error } = await supabase.rpc('get_mapbox_token');
       if (error) {
         console.error('Error fetching Mapbox token:', error);
@@ -50,10 +50,7 @@ export function RouteOptimization() {
         return;
       }
       if (data) {
-        console.log("Mapbox token fetched successfully");
         setMapboxToken(data);
-      } else {
-        console.log("No Mapbox token received from Supabase");
       }
     }
     fetchMapboxToken();
@@ -93,7 +90,6 @@ export function RouteOptimization() {
     }
   }, [mapboxToken]);
 
-  // Fetch routes from Supabase
   const { data: routes = [], refetch } = useQuery({
     queryKey: ['routes'],
     queryFn: async () => {
@@ -108,23 +104,15 @@ export function RouteOptimization() {
   });
 
   const calculateEfficiency = (distance: number, duration: number) => {
-    // Basic efficiency calculation based on distance and duration
-    const averageSpeed = distance / (duration / 60); // km/h
-    const optimalSpeed = 60; // Assumed optimal speed
+    const averageSpeed = distance / (duration / 60);
+    const optimalSpeed = 60;
     const efficiency = Math.min(100, Math.round((optimalSpeed / Math.abs(averageSpeed - optimalSpeed)) * 100));
     return efficiency;
   };
 
   const calculateSavings = (distance: number, efficiency: number) => {
-    // Basic savings calculation based on distance and efficiency
-    const fuelCost = 100; // Cost per km in rupees
+    const fuelCost = 100;
     return Math.round((distance * fuelCost * efficiency) / 100);
-  };
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
   };
 
   const handlePlanRoute = async () => {
@@ -140,32 +128,28 @@ export function RouteOptimization() {
     setIsPlanning(true);
 
     try {
-      // Get coordinates for source
       const sourceRes = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(source)}.json?access_token=${mapboxToken}`
       );
       const sourceData = await sourceRes.json();
       const [sourceLng, sourceLat] = sourceData.features[0].center;
 
-      // Get coordinates for destination
       const destRes = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destination)}.json?access_token=${mapboxToken}`
       );
       const destData = await destRes.json();
       const [destLng, destLat] = destData.features[0].center;
 
-      // Get route details using Mapbox Directions API
       const routeRes = await fetch(
         `https://api.mapbox.com/directions/v5/mapbox/driving/${sourceLng},${sourceLat};${destLng},${destLat}?access_token=${mapboxToken}`
       );
       const routeData = await routeRes.json();
 
-      const distance = Math.round(routeData.routes[0].distance / 1000); // Convert to km
-      const duration = Math.round(routeData.routes[0].duration / 60); // Convert to minutes
+      const distance = Math.round(routeData.routes[0].distance / 1000);
+      const duration = Math.round(routeData.routes[0].duration / 60);
       const efficiency = calculateEfficiency(distance, duration);
       const savings = calculateSavings(distance, efficiency);
 
-      // Insert new route into Supabase
       const { error } = await supabase
         .from('routes')
         .insert({
@@ -183,7 +167,6 @@ export function RouteOptimization() {
 
       if (error) throw error;
 
-      // Clear inputs and refetch routes
       setSource("");
       setDestination("");
       refetch();
@@ -204,70 +187,36 @@ export function RouteOptimization() {
     }
   };
 
-  console.log("Current state:", { source, destination, isPlanning, hasMapboxToken: !!mapboxToken });
-
   return (
     <Card title="Route Optimization" description={`${routes.length} routes planned`}>
       <div className="space-y-6">
         <div className="grid gap-4 p-4 bg-accent rounded-lg">
           <h3 className="font-medium text-primary-600">Plan New Delivery</h3>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="relative">
-              <label className="text-sm font-medium mb-1 block">Source Location</label>
-              <Input 
-                placeholder="Enter source location" 
-                value={source}
-                onChange={(e) => {
-                  setSource(e.target.value);
-                  fetchSuggestions(e.target.value, 'source');
-                }}
-                onFocus={() => setShowSourceSuggestions(true)}
-              />
-              {showSourceSuggestions && sourceSuggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
-                  {sourceSuggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md"
-                      onClick={() => {
-                        setSource(suggestion.place_name);
-                        setShowSourceSuggestions(false);
-                      }}
-                    >
-                      {suggestion.place_name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="relative">
-              <label className="text-sm font-medium mb-1 block">Destination</label>
-              <Input 
-                placeholder="Enter destination location" 
-                value={destination}
-                onChange={(e) => {
-                  setDestination(e.target.value);
-                  fetchSuggestions(e.target.value, 'destination');
-                }}
-                onFocus={() => setShowDestinationSuggestions(true)}
-              />
-              {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
-                  {destinationSuggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md"
-                      onClick={() => {
-                        setDestination(suggestion.place_name);
-                        setShowDestinationSuggestions(false);
-                      }}
-                    >
-                      {suggestion.place_name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <LocationInput
+              label="Source Location"
+              value={source}
+              onChange={(value) => {
+                setSource(value);
+                fetchSuggestions(value, 'source');
+              }}
+              onLocationSelect={(suggestion) => setSource(suggestion.place_name)}
+              suggestions={sourceSuggestions}
+              showSuggestions={showSourceSuggestions}
+              setShowSuggestions={setShowSourceSuggestions}
+            />
+            <LocationInput
+              label="Destination"
+              value={destination}
+              onChange={(value) => {
+                setDestination(value);
+                fetchSuggestions(value, 'destination');
+              }}
+              onLocationSelect={(suggestion) => setDestination(suggestion.place_name)}
+              suggestions={destinationSuggestions}
+              showSuggestions={showDestinationSuggestions}
+              setShowSuggestions={setShowDestinationSuggestions}
+            />
           </div>
           <Button 
             className="w-full md:w-auto"
@@ -283,55 +232,8 @@ export function RouteOptimization() {
           </Button>
         </div>
 
-        <div className="grid gap-4">
-          {routes.map((route) => (
-            <div key={route.id} className="p-4 bg-accent rounded-lg">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-medium text-primary-600">
-                    <MapPin className="inline-block mr-1 h-4 w-4" />
-                    {route.from_location} → {route.to_location}
-                  </h4>
-                  <p className="text-sm text-gray-500">
-                    Status: {route.status} • Distance: {route.distance}km • ETA: {formatDuration(route.estimated_duration)}
-                  </p>
-                </div>
-                <span className="text-sm font-medium text-green-600">
-                  ₹{route.savings.toLocaleString()} saved
-                </span>
-              </div>
-              
-              {route.alerts && route.alerts.length > 0 && (
-                <div className="mb-2 p-2 bg-yellow-50 rounded text-sm">
-                  <AlertTriangle className="inline-block mr-1 h-4 w-4 text-yellow-500" />
-                  {route.alerts.join(", ")}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Route Efficiency</span>
-                  <span>{route.efficiency}%</span>
-                </div>
-                <Progress value={route.efficiency} className="h-2" />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {routes.length > 0 && (
-          <div className="p-4 bg-primary-100 rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-primary-600">Total Savings</span>
-              <span className="text-lg font-bold text-primary-600">
-                ₹{routes.reduce((acc, route) => acc + route.savings, 0).toLocaleString()}
-              </span>
-            </div>
-            <p className="text-sm text-primary-700 mt-2">
-              Total Distance: {routes.reduce((acc, route) => acc + route.distance, 0).toLocaleString()}km
-            </p>
-          </div>
-        )}
+        <RouteList routes={routes} />
+        <RouteStats routes={routes} />
       </div>
     </Card>
   );
