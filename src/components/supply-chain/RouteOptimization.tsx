@@ -1,9 +1,10 @@
+
 import { Card } from "@/components/ui/dashboard/Card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MapPin, Truck, AlertTriangle, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -20,11 +21,20 @@ interface Route {
   estimated_duration: number;
 }
 
+interface LocationSuggestion {
+  place_name: string;
+  center: [number, number];
+}
+
 export function RouteOptimization() {
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
   const [isPlanning, setIsPlanning] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const [sourceSuggestions, setSourceSuggestions] = useState<LocationSuggestion[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<LocationSuggestion[]>([]);
+  const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
 
   useEffect(() => {
     async function fetchMapboxToken() {
@@ -48,6 +58,40 @@ export function RouteOptimization() {
     }
     fetchMapboxToken();
   }, []);
+
+  const fetchSuggestions = useCallback(async (value: string, type: 'source' | 'destination') => {
+    if (!mapboxToken || value.trim().length < 3) {
+      type === 'source' ? setSourceSuggestions([]) : setDestinationSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          value
+        )}.json?access_token=${mapboxToken}&types=place`
+      );
+      
+      if (!response.ok) throw new Error('Failed to fetch suggestions');
+      
+      const data = await response.json();
+      const suggestions = data.features.map((feature: any) => ({
+        place_name: feature.place_name,
+        center: feature.center,
+      }));
+
+      if (type === 'source') {
+        setSourceSuggestions(suggestions);
+        setShowSourceSuggestions(true);
+      } else {
+        setDestinationSuggestions(suggestions);
+        setShowDestinationSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Search suggestion error:', error);
+      type === 'source' ? setSourceSuggestions([]) : setDestinationSuggestions([]);
+    }
+  }, [mapboxToken]);
 
   // Fetch routes from Supabase
   const { data: routes = [], refetch } = useQuery({
@@ -88,16 +132,6 @@ export function RouteOptimization() {
       toast({
         title: "Error",
         description: "Please enter both source and destination locations.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!mapboxToken) {
-      console.log("No Mapbox token available:", { source, destination, mapboxToken });
-      toast({
-        title: "Error",
-        description: "Map service is not configured properly. Please try again later.",
         variant: "destructive",
       });
       return;
@@ -178,27 +212,67 @@ export function RouteOptimization() {
         <div className="grid gap-4 p-4 bg-accent rounded-lg">
           <h3 className="font-medium text-primary-600">Plan New Delivery</h3>
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
+            <div className="relative">
               <label className="text-sm font-medium mb-1 block">Source Location</label>
               <Input 
                 placeholder="Enter source location" 
                 value={source}
-                onChange={(e) => setSource(e.target.value)}
+                onChange={(e) => {
+                  setSource(e.target.value);
+                  fetchSuggestions(e.target.value, 'source');
+                }}
+                onFocus={() => setShowSourceSuggestions(true)}
               />
+              {showSourceSuggestions && sourceSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
+                  {sourceSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md"
+                      onClick={() => {
+                        setSource(suggestion.place_name);
+                        setShowSourceSuggestions(false);
+                      }}
+                    >
+                      {suggestion.place_name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div>
+            <div className="relative">
               <label className="text-sm font-medium mb-1 block">Destination</label>
               <Input 
                 placeholder="Enter destination location" 
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) => {
+                  setDestination(e.target.value);
+                  fetchSuggestions(e.target.value, 'destination');
+                }}
+                onFocus={() => setShowDestinationSuggestions(true)}
               />
+              {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
+                  {destinationSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md"
+                      onClick={() => {
+                        setDestination(suggestion.place_name);
+                        setShowDestinationSuggestions(false);
+                      }}
+                    >
+                      {suggestion.place_name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <Button 
             className="w-full md:w-auto"
             onClick={handlePlanRoute}
-            disabled={!source || !destination || isPlanning || !mapboxToken}
+            disabled={!source || !destination || isPlanning}
           >
             {isPlanning ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
