@@ -1,6 +1,6 @@
 
 import { Input } from "@/components/ui/input";
-import { MapPin } from "lucide-react";
+import { MapPin, Loader2 } from "lucide-react";
 
 interface LocationSuggestion {
   place_name: string;
@@ -15,6 +15,7 @@ interface LocationInputProps {
   suggestions: LocationSuggestion[];
   showSuggestions: boolean;
   setShowSuggestions: (show: boolean) => void;
+  isLoading?: boolean;
 }
 
 export function LocationInput({
@@ -25,16 +26,25 @@ export function LocationInput({
   suggestions,
   showSuggestions,
   setShowSuggestions,
+  isLoading = false,
 }: LocationInputProps) {
   return (
     <div className="relative">
       <label className="text-sm font-medium mb-1 block">{label}</label>
-      <Input 
-        placeholder={`Enter ${label.toLowerCase()}`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setShowSuggestions(true)}
-      />
+      <div className="relative">
+        <Input 
+          placeholder={`Enter ${label.toLowerCase()}`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          disabled={isLoading}
+        />
+        {isLoading && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
           {suggestions.map((suggestion, index) => (

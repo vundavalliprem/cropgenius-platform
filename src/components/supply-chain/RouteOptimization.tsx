@@ -32,6 +32,7 @@ export function RouteOptimization() {
   const [destination, setDestination] = useState("");
   const [isPlanning, setIsPlanning] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const [isLoadingToken, setIsLoadingToken] = useState(true);
   const [sourceSuggestions, setSourceSuggestions] = useState<LocationSuggestion[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<LocationSuggestion[]>([]);
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
@@ -39,18 +40,30 @@ export function RouteOptimization() {
 
   useEffect(() => {
     async function fetchMapboxToken() {
-      const { data, error } = await supabase.rpc('get_mapbox_token');
-      if (error) {
+      setIsLoadingToken(true);
+      try {
+        const { data, error } = await supabase.rpc('get_mapbox_token');
+        if (error) {
+          console.error('Error fetching Mapbox token:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load map configuration. Please try again later.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (data) {
+          setMapboxToken(data);
+        }
+      } catch (error) {
         console.error('Error fetching Mapbox token:', error);
         toast({
           title: "Error",
           description: "Failed to load map configuration. Please try again later.",
           variant: "destructive",
         });
-        return;
-      }
-      if (data) {
-        setMapboxToken(data);
+      } finally {
+        setIsLoadingToken(false);
       }
     }
     fetchMapboxToken();
@@ -87,6 +100,11 @@ export function RouteOptimization() {
     } catch (error) {
       console.error('Search suggestion error:', error);
       type === 'source' ? setSourceSuggestions([]) : setDestinationSuggestions([]);
+      toast({
+        title: "Error",
+        description: "Failed to fetch location suggestions. Please try again.",
+        variant: "destructive",
+      });
     }
   }, [mapboxToken]);
 
@@ -116,6 +134,15 @@ export function RouteOptimization() {
   };
 
   const handlePlanRoute = async () => {
+    if (!mapboxToken) {
+      toast({
+        title: "Error",
+        description: "Map configuration is not loaded. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!source || !destination) {
       toast({
         title: "Error",
@@ -204,6 +231,7 @@ export function RouteOptimization() {
               suggestions={sourceSuggestions}
               showSuggestions={showSourceSuggestions}
               setShowSuggestions={setShowSourceSuggestions}
+              isLoading={isLoadingToken}
             />
             <LocationInput
               label="Destination"
@@ -216,12 +244,13 @@ export function RouteOptimization() {
               suggestions={destinationSuggestions}
               showSuggestions={showDestinationSuggestions}
               setShowSuggestions={setShowDestinationSuggestions}
+              isLoading={isLoadingToken}
             />
           </div>
           <Button 
             className="w-full md:w-auto"
             onClick={handlePlanRoute}
-            disabled={!source || !destination || isPlanning}
+            disabled={!mapboxToken || !source || !destination || isPlanning || isLoadingToken}
           >
             {isPlanning ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
