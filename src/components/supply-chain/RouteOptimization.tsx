@@ -16,15 +16,14 @@ interface LocationSuggestion {
 }
 
 interface Route {
-  id: number;
+  id: string;
+  user_id: string;
   from_location: string;
   to_location: string;
-  efficiency: number;
-  savings: number;
-  status: string;
-  alerts: string[];
-  distance: number;
-  estimated_duration: number;
+  distance: number | null;
+  duration: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export function RouteOptimization() {
@@ -177,19 +176,25 @@ export function RouteOptimization() {
       const efficiency = calculateEfficiency(distance, duration);
       const savings = calculateSavings(distance, efficiency);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to plan routes.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('routes')
         .insert({
+          user_id: user.id,
           from_location: source,
           to_location: destination,
           distance,
-          estimated_duration: duration,
-          efficiency,
-          savings,
-          from_coordinates: `(${sourceLng},${sourceLat})`,
-          to_coordinates: `(${destLng},${destLat})`,
-          alerts: [],
-          status: 'planned'
+          duration
         });
 
       if (error) throw error;

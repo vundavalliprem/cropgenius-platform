@@ -14,13 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      favorite_cities: {
+        Row: {
+          city_name: string
+          created_at: string
+          id: string
+          lat: number
+          lng: number
+          user_id: string
+        }
+        Insert: {
+          city_name: string
+          created_at?: string
+          id?: string
+          lat: number
+          lng: number
+          user_id: string
+        }
+        Update: {
+          city_name?: string
+          created_at?: string
+          id?: string
+          lat?: number
+          lng?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      financial_records: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          record_date: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          record_date?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          record_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      routes: {
+        Row: {
+          created_at: string
+          distance: number | null
+          duration: number | null
+          from_location: string
+          id: string
+          to_location: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance?: number | null
+          duration?: number | null
+          from_location: string
+          id?: string
+          to_location: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance?: number | null
+          duration?: number | null
+          from_location?: string
+          id?: string
+          to_location?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_areas: {
+        Row: {
+          area: number
+          created_at: string
+          id: string
+          name: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area: number
+          created_at?: string
+          id?: string
+          name: string
+          unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area?: number
+          created_at?: string
+          id?: string
+          name?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_mapbox_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
