@@ -145,10 +145,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_mapbox_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_mapbox_token: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

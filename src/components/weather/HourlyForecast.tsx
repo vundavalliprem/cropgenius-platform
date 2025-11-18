@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useWeatherData } from '@/services/openWeather';
-import { Cloud, CloudRain, CloudSun, Moon, Sun } from 'lucide-react';
+import { Cloud, CloudRain, CloudSun, Moon, Sun, Droplets, Wind } from 'lucide-react';
 
 interface HourlyForecastProps {
   lat: number;
@@ -10,12 +10,12 @@ interface HourlyForecastProps {
 
 const getWeatherIcon = (hour: number) => {
   if (hour >= 6 && hour <= 18) {
-    if (hour % 4 === 0) return <CloudSun className="w-6 h-6 text-primary" />;
-    if (hour % 3 === 0) return <CloudRain className="w-6 h-6 text-primary" />;
-    if (hour % 2 === 0) return <Cloud className="w-6 h-6 text-primary" />;
-    return <Sun className="w-6 h-6 text-yellow-400" />;
+    if (hour % 4 === 0) return <CloudSun className="w-8 h-8 text-blue-400 animate-float" />;
+    if (hour % 3 === 0) return <CloudRain className="w-8 h-8 text-blue-500 animate-float" />;
+    if (hour % 2 === 0) return <Cloud className="w-8 h-8 text-gray-400 animate-float" />;
+    return <Sun className="w-8 h-8 text-yellow-400 animate-sun-glow" />;
   }
-  return <Moon className="w-6 h-6 text-slate-400" />;
+  return <Moon className="w-8 h-8 text-slate-400 animate-float" />;
 };
 
 export function HourlyForecast({ lat, lng }: HourlyForecastProps) {
@@ -24,27 +24,39 @@ export function HourlyForecast({ lat, lng }: HourlyForecastProps) {
   const data = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i}:00`,
     temperature: Math.round((weatherData?.temp || 20) + Math.sin(i / 4) * 5),
-    humidity: Math.round((weatherData?.humidity || 50) + Math.cos(i / 4) * 10),
+    rain: Math.round(Math.random() * 100),
+    wind: Math.round(10 + Math.random() * 10),
     icon: getWeatherIcon(i),
   }));
 
   return (
-    <Card title="Hourly Forecast" description="24-hour weather prediction">
-      <div className="mt-4 space-y-6">
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary scrollbar-track-transparent">
-          {data.slice(0, 12).map((hour, index) => (
+    <Card title="24-Hour Forecast" description="Hourly weather prediction">
+      <div className="mt-4">
+        <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory">
+          {data.map((hour, index) => (
             <div 
               key={hour.hour}
-              className={`flex flex-col items-center p-4 min-w-[100px] rounded-xl ${
-                index === 0 ? 'bg-primary text-white' : 'bg-accent hover:bg-primary/10'
+              className={`glass-card rounded-2xl p-5 min-w-[140px] snap-center hover:scale-105 transition-all duration-300 ${
+                index === 0 ? 'weather-glow' : ''
               }`}
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
-              <span className="text-sm font-medium mb-2">{hour.hour}</span>
-              {hour.icon}
-              <span className="text-lg font-bold mt-2">{hour.temperature}°</span>
-              <span className="text-sm text-muted-foreground mt-1">
-                {hour.humidity}%
-              </span>
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-sm font-semibold">{hour.hour}</span>
+                {hour.icon}
+                <span className="text-2xl font-bold">{hour.temperature}°</span>
+                
+                <div className="flex flex-col gap-2 w-full text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <Droplets className="w-3 h-3 text-blue-400" />
+                    <span className="text-muted-foreground">{hour.rain}%</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Wind className="w-3 h-3 text-teal-400" />
+                    <span className="text-muted-foreground">{hour.wind} km/h</span>
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
