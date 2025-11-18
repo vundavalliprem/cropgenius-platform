@@ -26,21 +26,37 @@ export function useMapInstance(mapContainer: React.RefObject<HTMLDivElement>, is
         mapRef.current = null;
       }
 
-      // Create new map instance with a style that includes labels
+      // Create new map instance with modern outdoors style
       const map = new mapboxgl.Map({
         container: mapContainer.current,
-        // Using satellite-streets-v12 style which includes terrain and labels
-        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        style: 'mapbox://styles/mapbox/outdoors-v12',
         center: [-95.7129, 37.0902],
         zoom: 15,
+        pitch: 0,
+        bearing: 0,
+        antialias: true,
       });
 
-      // Add navigation control after map loads
+      // Add navigation control with smooth animations
       map.on('load', () => {
         if (!mountedRef.current) return;
-        const navControl = new mapboxgl.NavigationControl();
+        
+        // Add smooth transitions
+        map.setPaintProperty('water', 'fill-color', 'hsl(217, 91%, 60%)');
+        
+        const navControl = new mapboxgl.NavigationControl({
+          visualizePitch: true,
+          showCompass: true,
+          showZoom: true,
+        });
         map.addControl(navControl, 'top-right');
         navigationControlRef.current = navControl;
+        
+        // Enable smooth map movements
+        map.easeTo({ 
+          duration: 1000,
+          essential: true 
+        });
       });
 
       mapRef.current = map;
