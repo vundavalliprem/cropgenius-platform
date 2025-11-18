@@ -66,12 +66,18 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
 
     const createLengthLabel = (text: string) => {
       const el = document.createElement('div');
-      el.className = 'bg-white px-2 py-1 rounded shadow text-sm';
+      el.className = 'px-3 py-1.5 rounded-full shadow-lg text-xs font-semibold backdrop-blur-xl border animate-draw-point';
+      el.style.cssText = `
+        background: hsl(var(--glass-white) / 0.1);
+        border-color: hsl(var(--neon-cyan) / 0.3);
+        color: hsl(var(--foreground));
+        box-shadow: 0 0 20px hsl(var(--neon-cyan) / 0.3);
+      `;
       el.textContent = text;
       return el;
     };
 
-    // Initialize draw control
+    // Initialize draw control with modern neon styles
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -84,9 +90,9 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           'type': 'fill',
           'filter': ['all', ['==', '$type', 'Polygon']],
           'paint': {
-            'fill-color': '#3388ff',
-            'fill-outline-color': '#3388ff',
-            'fill-opacity': 0.1
+            'fill-color': 'hsl(217, 91%, 60%)',
+            'fill-outline-color': 'hsl(189, 94%, 43%)',
+            'fill-opacity': 0.15
           }
         },
         {
@@ -94,8 +100,19 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           'type': 'line',
           'filter': ['all', ['==', '$type', 'Polygon']],
           'paint': {
-            'line-color': '#3388ff',
-            'line-width': 2
+            'line-color': 'hsl(189, 94%, 43%)',
+            'line-width': 3,
+            'line-opacity': 0.8
+          }
+        },
+        {
+          'id': 'gl-draw-line',
+          'type': 'line',
+          'filter': ['all', ['==', '$type', 'LineString']],
+          'paint': {
+            'line-color': 'hsl(280, 100%, 70%)',
+            'line-width': 3,
+            'line-opacity': 0.6
           }
         },
         {
@@ -103,9 +120,20 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           'type': 'circle',
           'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
           'paint': {
+            'circle-radius': 8,
+            'circle-color': '#ffffff',
+            'circle-stroke-color': 'hsl(280, 100%, 70%)',
+            'circle-stroke-width': 3
+          }
+        },
+        {
+          'id': 'gl-draw-polygon-and-line-vertex-inactive',
+          'type': 'circle',
+          'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'active', 'true']],
+          'paint': {
             'circle-radius': 6,
-            'circle-color': '#fff',
-            'circle-stroke-color': '#3388ff',
+            'circle-color': '#ffffff',
+            'circle-stroke-color': 'hsl(217, 91%, 60%)',
             'circle-stroke-width': 2
           }
         }

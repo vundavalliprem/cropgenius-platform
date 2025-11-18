@@ -54,6 +54,11 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --neon-blue: 217 91% 60%;
+    --neon-purple: 280 100% 70%;
+    --neon-cyan: 189 94% 43%;
+    --glass-white: 0 0% 100%;
   }
 
   .dark {
@@ -97,6 +102,11 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --neon-blue: 217 91% 60%;
+    --neon-purple: 280 100% 70%;
+    --neon-cyan: 189 94% 43%;
+    --glass-white: 222.2 84% 4.9%;
   }
 }
 
@@ -118,9 +128,33 @@
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
   }
   
+  .glass-panel {
+    @apply backdrop-blur-2xl border rounded-2xl shadow-2xl;
+    background: hsl(var(--glass-white) / 0.05);
+    border-color: hsl(var(--neon-blue) / 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+  
+  .neon-glow-blue {
+    box-shadow: 0 0 20px hsl(var(--neon-blue) / 0.4),
+                0 0 40px hsl(var(--neon-blue) / 0.2),
+                inset 0 0 10px hsl(var(--neon-blue) / 0.1);
+  }
+  
+  .neon-glow-purple {
+    box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.4),
+                0 0 40px hsl(var(--neon-purple) / 0.2);
+  }
+  
   .weather-glow {
     box-shadow: 0 0 20px hsl(var(--weather-glow) / 0.3),
                 0 0 40px hsl(var(--weather-glow) / 0.1);
+  }
+  
+  .map-glow {
+    box-shadow: 0 0 30px hsl(var(--neon-cyan) / 0.3),
+                0 0 60px hsl(var(--neon-cyan) / 0.1);
   }
   
   .animate-float {
@@ -168,5 +202,30 @@
     0% { transform: translateY(-100%) rotate(0deg); opacity: 0; }
     50% { opacity: 1; }
     100% { transform: translateY(100%) rotate(360deg); opacity: 0; }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 20px hsl(var(--neon-blue) / 0.4),
+                  0 0 40px hsl(var(--neon-blue) / 0.2);
+    }
+    50% { 
+      box-shadow: 0 0 30px hsl(var(--neon-blue) / 0.6),
+                  0 0 60px hsl(var(--neon-blue) / 0.3);
+    }
+  }
+  
+  @keyframes draw-point {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-draw-point {
+    animation: draw-point 0.3s ease-out;
   }
 }

@@ -6,8 +6,9 @@ import { useMapInitialization } from './hooks/useMapInitialization';
 import { useAreaCalculation } from './hooks/useAreaCalculation';
 import { useMapSetup } from './hooks/useMapSetup';
 import { MapControls } from './components/MapControls';
-import { AreaDisplay } from './components/AreaDisplay';
+import { AreaConversions } from './components/AreaConversions';
 import { MapContainer } from './components/MapContainer';
+import { Input } from '@/components/ui/input';
 import { Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,7 @@ export function AreaMap({ className }: AreaMapProps) {
   const mapContainer = React.useRef<HTMLDivElement>(null);
   const { isReady, error: mapError } = useMapInitialization();
   const { toast } = useToast();
+  const [areaName, setAreaName] = React.useState("");
   const {
     selectedUnit,
     setSelectedUnit,
@@ -44,13 +46,23 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [drawRef]);
 
   const handleClear = React.useCallback(() => {
-    if (!drawRef.current) return;
-    const trashControl = document.querySelector('.mapbox-gl-draw_trash');
-    if (trashControl) {
-      (trashControl as HTMLElement).click();
-      setCalculatedArea(null);
-    }
-  }, [drawRef, setCalculatedArea]);
+    if (!drawRef.current || !mapRef.current) return;
+    
+    // Delete all features from draw
+    drawRef.current.deleteAll();
+    
+    // Remove all markers (including distance labels)
+    const markers = document.querySelectorAll('.mapboxgl-marker');
+    markers.forEach(marker => marker.remove());
+    
+    // Reset calculated area
+    setCalculatedArea(null);
+    
+    toast({
+      title: "Cleared",
+      description: "All drawings and measurements have been cleared.",
+    });
+  }, [drawRef, mapRef, setCalculatedArea, toast]);
 
   const handleLocationRequest = React.useCallback(async () => {
     try {
@@ -84,6 +96,15 @@ export function AreaMap({ className }: AreaMapProps) {
       return;
     }
 
+    if (!areaName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for this area.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -92,7 +113,7 @@ export function AreaMap({ className }: AreaMapProps) {
         user_id: user.id,
         area: calculatedArea,
         unit: selectedUnit,
-        name: `Area ${new Date().toLocaleString()}`,
+        name: areaName.trim(),
       });
 
       if (error) throw error;
@@ -101,6 +122,8 @@ export function AreaMap({ className }: AreaMapProps) {
         title: "Success",
         description: "Area saved successfully!",
       });
+      
+      setAreaName("");
     } catch (error) {
       console.error('Save area error:', error);
       toast({
@@ -109,11 +132,11 @@ export function AreaMap({ className }: AreaMapProps) {
         variant: "destructive",
       });
     }
-  }, [calculatedArea, selectedUnit, toast]);
+  }, [calculatedArea, selectedUnit, areaName, toast]);
 
   return (
-    <Card title="Area Calculator" description="Draw or track field boundaries" className={className}>
-      <div className="space-y-4">
+    <div className={className}>
+      <div className="space-y-6">
         <MapControls
           isReady={isReady}
           selectedUnit={selectedUnit}
@@ -122,25 +145,42 @@ export function AreaMap({ className }: AreaMapProps) {
           onLocationRequest={handleLocationRequest}
           onClear={handleClear}
         />
-        <AreaDisplay
-          calculatedArea={calculatedArea}
-          selectedUnit={selectedUnit}
-        />
-        {calculatedArea && (
-          <Button 
-            onClick={handleSaveArea}
-            className="w-full sm:w-auto"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Save Area
-          </Button>
-        )}
+        
         <MapContainer
           mapError={mapError}
           mapRef={mapContainer}
-          className="map-container"
+          className="map-container h-[500px] rounded-2xl overflow-hidden map-glow"
         />
+        
+        <AreaConversions
+          calculatedArea={calculatedArea}
+          selectedUnit={selectedUnit}
+        />
+        
+        {calculatedArea && (
+          <div className="glass-panel p-6 space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Save className="h-5 w-5 text-[hsl(var(--neon-blue))]" />
+              Save This Area
+            </h3>
+            <div className="flex gap-3">
+              <Input
+                placeholder="Enter area name (e.g., North Field, Plot A)"
+                value={areaName}
+                onChange={(e) => setAreaName(e.target.value)}
+                className="flex-1 bg-background/50 border-[hsl(var(--neon-blue))]/30"
+              />
+              <Button 
+                onClick={handleSaveArea}
+                className="bg-gradient-to-r from-[hsl(var(--neon-blue))] to-[hsl(var(--neon-purple))] hover:opacity-90 transition-opacity"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
-    </Card>
+    </div>
   );
 }
