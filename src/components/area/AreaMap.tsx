@@ -8,9 +8,10 @@ import { useMapSetup } from './hooks/useMapSetup';
 import { MapControls } from './components/MapControls';
 import { AreaConversions } from './components/AreaConversions';
 import { MapContainer } from './components/MapContainer';
+import { MapLayerSwitcher, MapStyle } from './components/MapLayerSwitcher';
 import { Input } from '@/components/ui/input';
 import { Save } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 
 interface AreaMapProps {
@@ -22,6 +23,7 @@ export function AreaMap({ className }: AreaMapProps) {
   const { isReady, error: mapError } = useMapInitialization();
   const { toast } = useToast();
   const [areaName, setAreaName] = React.useState("");
+  const [mapStyle, setMapStyle] = React.useState<MapStyle>('streets');
   const {
     selectedUnit,
     setSelectedUnit,
@@ -36,6 +38,19 @@ export function AreaMap({ className }: AreaMapProps) {
     setCalculatedArea,
     mapContainer,
   });
+
+  const handleStyleChange = React.useCallback((style: MapStyle) => {
+    if (!mapRef.current) return;
+    setMapStyle(style);
+    
+    const styleUrls: Record<MapStyle, string> = {
+      streets: 'mapbox://styles/mapbox/outdoors-v12',
+      satellite: 'mapbox://styles/mapbox/satellite-v9',
+      hybrid: 'mapbox://styles/mapbox/satellite-streets-v12',
+    };
+    
+    mapRef.current.setStyle(styleUrls[style]);
+  }, [mapRef]);
 
   const handleStartDrawing = React.useCallback(() => {
     if (!drawRef.current) return;
@@ -135,8 +150,12 @@ export function AreaMap({ className }: AreaMapProps) {
   }, [calculatedArea, selectedUnit, areaName, toast]);
 
   return (
-    <div className={className}>
-      <div className="space-y-6">
+    <Card 
+      title="Interactive Field Map" 
+      description="Draw or track your field boundaries"
+      className={className}
+    >
+      <div className="space-y-4 sm:space-y-6">
         <MapControls
           isReady={isReady}
           selectedUnit={selectedUnit}
@@ -145,12 +164,20 @@ export function AreaMap({ className }: AreaMapProps) {
           onLocationRequest={handleLocationRequest}
           onClear={handleClear}
         />
-        
-        <MapContainer
-          mapError={mapError}
-          mapRef={mapContainer}
-          className="map-container h-[500px] rounded-2xl overflow-hidden map-glow"
-        />
+
+        <div className="relative">
+          <div className="absolute top-4 right-4 z-10">
+            <MapLayerSwitcher 
+              currentStyle={mapStyle}
+              onStyleChange={handleStyleChange}
+            />
+          </div>
+          <MapContainer
+            mapError={mapError}
+            mapRef={mapContainer}
+            className="map-container h-[400px] sm:h-[500px] rounded-xl sm:rounded-2xl overflow-hidden map-glow"
+          />
+        </div>
         
         <AreaConversions
           calculatedArea={calculatedArea}
@@ -158,21 +185,21 @@ export function AreaMap({ className }: AreaMapProps) {
         />
         
         {calculatedArea && (
-          <div className="glass-panel p-6 space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Save className="h-5 w-5 text-[hsl(var(--neon-blue))]" />
+          <div className="glass-panel p-4 sm:p-6 rounded-xl sm:rounded-2xl">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+              <Save className="h-4 w-4 sm:h-5 sm:w-5 text-[hsl(var(--neon-blue))]" />
               Save This Area
             </h3>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Input
                 placeholder="Enter area name (e.g., North Field, Plot A)"
                 value={areaName}
                 onChange={(e) => setAreaName(e.target.value)}
-                className="flex-1 bg-background/50 border-[hsl(var(--neon-blue))]/30"
+                className="flex-1 glass-panel border-[hsl(var(--neon-blue))]/30 text-sm sm:text-base"
               />
               <Button 
                 onClick={handleSaveArea}
-                className="bg-gradient-to-r from-[hsl(var(--neon-blue))] to-[hsl(var(--neon-purple))] hover:opacity-90 transition-opacity"
+                className="glass-panel bg-gradient-to-r from-[hsl(var(--neon-blue))] to-[hsl(var(--neon-purple))] hover:opacity-90 transition-all hover:scale-105 border-0 w-full sm:w-auto text-sm sm:text-base"
               >
                 <Save className="mr-2 h-4 w-4" />
                 Save
@@ -181,6 +208,6 @@ export function AreaMap({ className }: AreaMapProps) {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

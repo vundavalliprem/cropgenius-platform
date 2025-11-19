@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from "@/components/ui/dashboard/Card";
 import { useWeatherData } from '@/services/openWeather';
 import { Sunrise, Sunset, Wind, Droplets, Eye, Gauge, Thermometer } from 'lucide-react';
+import { AirQuality } from './AirQuality';
 
 interface TodayHighlightsProps {
   lat: number;
@@ -58,20 +59,24 @@ export function TodayHighlights({ lat, lng }: TodayHighlightsProps) {
 
   return (
     <Card title="Today's Highlights" description="Key weather metrics for today">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mt-4">
         {highlights.map((item, index) => (
           <div
             key={item.label}
-            className="glass-card rounded-2xl p-6 hover:scale-105 transition-transform duration-300 weather-glow"
+            className="glass-card rounded-2xl p-4 sm:p-6 hover:scale-105 transition-transform duration-300 weather-glow"
             style={{ animationDelay: `${index * 0.1}s` }}
           >
-            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-4 animate-float`}>
-              {item.icon}
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-3 sm:mb-4 animate-float shadow-lg`}>
+              {React.cloneElement(item.icon as React.ReactElement, { 
+                className: "w-5 h-5 sm:w-6 sm:h-6 text-white" 
+              })}
             </div>
-            <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
-            <p className="text-xl font-bold">{item.value}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-1">{item.label}</p>
+            <p className="text-lg sm:text-xl font-bold">{item.value}</p>
           </div>
         ))}
+        
+        <AirQuality lat={lat} lng={lng} />
       </div>
     </Card>
   );

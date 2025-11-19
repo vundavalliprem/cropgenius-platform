@@ -120,10 +120,10 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           'type': 'circle',
           'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
           'paint': {
-            'circle-radius': 8,
+            'circle-radius': 5,
             'circle-color': '#ffffff',
             'circle-stroke-color': 'hsl(280, 100%, 70%)',
-            'circle-stroke-width': 3
+            'circle-stroke-width': 2
           }
         },
         {
@@ -131,10 +131,10 @@ export function useDrawControls({ mapRef, mountedRef, onAreaUpdate, selectedUnit
           'type': 'circle',
           'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'active', 'true']],
           'paint': {
-            'circle-radius': 6,
+            'circle-radius': 4,
             'circle-color': '#ffffff',
             'circle-stroke-color': 'hsl(217, 91%, 60%)',
-            'circle-stroke-width': 2
+            'circle-stroke-width': 1.5
           }
         }
       ]

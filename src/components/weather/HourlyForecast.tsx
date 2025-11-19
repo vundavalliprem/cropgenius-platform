@@ -32,28 +32,30 @@ export function HourlyForecast({ lat, lng }: HourlyForecastProps) {
   return (
     <Card title="24-Hour Forecast" description="Hourly weather prediction">
       <div className="mt-4">
-        <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory">
+        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-[hsl(var(--neon-blue))]/30">
           {data.map((hour, index) => (
             <div 
               key={hour.hour}
-              className={`glass-card rounded-2xl p-5 min-w-[140px] snap-center hover:scale-105 transition-all duration-300 ${
+              className={`glass-card rounded-xl p-3 sm:p-4 min-w-[90px] sm:min-w-[100px] snap-center hover:scale-105 transition-all duration-300 flex-shrink-0 ${
                 index === 0 ? 'weather-glow' : ''
               }`}
               style={{ animationDelay: `${index * 0.05}s` }}
             >
-              <div className="flex flex-col items-center gap-3">
-                <span className="text-sm font-semibold">{hour.hour}</span>
-                {hour.icon}
-                <span className="text-2xl font-bold">{hour.temperature}°</span>
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-xs font-semibold">{hour.hour}</span>
+                {React.cloneElement(hour.icon as React.ReactElement, { 
+                  className: "w-6 h-6" 
+                })}
+                <span className="text-lg font-bold">{hour.temperature}°</span>
                 
-                <div className="flex flex-col gap-2 w-full text-xs">
-                  <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col gap-1.5 w-full text-xs">
+                  <div className="flex items-center justify-center gap-1">
                     <Droplets className="w-3 h-3 text-blue-400" />
                     <span className="text-muted-foreground">{hour.rain}%</span>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-center gap-1">
                     <Wind className="w-3 h-3 text-teal-400" />
-                    <span className="text-muted-foreground">{hour.wind} km/h</span>
+                    <span className="text-muted-foreground">{hour.wind}</span>
                   </div>
                 </div>
               </div>
