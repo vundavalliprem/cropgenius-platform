@@ -38,40 +38,42 @@ export function DailyForecast({ lat, lng }: DailyForecastProps) {
 
   return (
     <Card title="5-Day Forecast" description="Extended weather prediction">
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-2 sm:space-y-3">
         {data.map((day, index) => (
           <div 
             key={day.day}
-            className={`glass-card rounded-2xl p-6 hover:scale-105 transition-all duration-300 ${
+            className={`glass-card rounded-xl sm:rounded-2xl p-4 sm:p-5 hover:scale-105 transition-all duration-300 ${
               index === 0 ? 'weather-glow' : ''
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1">
-                <span className="font-bold text-lg w-24">{day.day}</span>
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 flex-1">
+                <span className="font-bold text-sm sm:text-base min-w-[60px] sm:min-w-[80px]">{day.day}</span>
                 <div className="flex items-center justify-center">
-                  {day.icon}
+                  {React.cloneElement(day.icon as React.ReactElement, { 
+                    className: "w-6 h-6 sm:w-8 sm:h-8" 
+                  })}
                 </div>
               </div>
               
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-orange-500">{day.maxTemp}°</span>
-                  <span className="text-xl text-muted-foreground">{day.minTemp}°</span>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">{day.maxTemp}°</span>
+                  <span className="text-sm sm:text-base text-muted-foreground">{day.minTemp}°</span>
                 </div>
                 
-                <div className="hidden md:flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <Droplets className="w-4 h-4 text-blue-400" />
+                <div className="hidden sm:flex items-center gap-2 md:gap-3 text-xs">
+                  <div className="flex items-center gap-1 px-2 py-1 glass-card rounded-lg">
+                    <Droplets className="w-3 h-3 text-blue-400" />
                     <span>{day.humidity}%</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Wind className="w-4 h-4 text-teal-400" />
-                    <span>{day.wind} km/h</span>
+                  <div className="flex items-center gap-1 px-2 py-1 glass-card rounded-lg">
+                    <Wind className="w-3 h-3 text-teal-400" />
+                    <span>{day.wind}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Gauge className="w-4 h-4 text-yellow-400" />
-                    <span>UV {day.uv}</span>
+                  <div className="flex items-center gap-1 px-2 py-1 glass-card rounded-lg">
+                    <Gauge className="w-3 h-3 text-yellow-400" />
+                    <span>{day.uv}</span>
                   </div>
                 </div>
               </div>
